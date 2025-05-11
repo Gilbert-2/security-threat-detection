@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { AlertItemProps } from "./AlertItem";
-import { AlertCircle, Camera, Clock, ShieldAlert } from "lucide-react";
+import { AlertCircle, Camera, Clock, ShieldAlert, Eye, CheckCircle, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -18,16 +18,31 @@ export const AlertDetails = ({ selectedAlert }: AlertDetailsProps) => {
     critical: "text-alert-critical",
   };
 
+  const severityBg: Record<string, string> = {
+    low: "bg-alert-low/10",
+    medium: "bg-alert-medium/10",
+    high: "bg-alert-high/10",
+    critical: "bg-alert-critical/10",
+  };
+
   if (!selectedAlert) {
     return (
       <Card className="h-full">
-        <CardHeader>
+        <CardHeader className="border-b">
           <CardTitle className="text-lg">Alert Details</CardTitle>
         </CardHeader>
-        <CardContent className="flex h-[calc(100%-60px)] items-center justify-center">
-          <p className="text-muted-foreground text-center">
-            Select an alert from the event feed to view details
-          </p>
+        <CardContent className="flex h-[calc(100%-60px)] items-center justify-center flex-col">
+          <div className="p-4 text-center">
+            <div className="mx-auto w-16 h-16 rounded-full bg-slate-800/50 flex items-center justify-center mb-4">
+              <Bell className="h-8 w-8 text-muted-foreground/50" />
+            </div>
+            <p className="text-muted-foreground text-sm">
+              Select an alert from the event feed to view details
+            </p>
+            <p className="text-xs text-muted-foreground/70 mt-2">
+              All alert information and actions will appear here
+            </p>
+          </div>
         </CardContent>
       </Card>
     );
@@ -35,7 +50,7 @@ export const AlertDetails = ({ selectedAlert }: AlertDetailsProps) => {
 
   return (
     <Card className="h-full overflow-hidden">
-      <CardHeader className="pb-2">
+      <CardHeader className="pb-3 border-b">
         <div className="flex justify-between items-center">
           <CardTitle className="text-lg flex items-center gap-2">
             <AlertCircle className={cn("h-5 w-5", severityColors[selectedAlert.severity])} />
@@ -45,57 +60,64 @@ export const AlertDetails = ({ selectedAlert }: AlertDetailsProps) => {
             variant="outline" 
             className={cn(
               "uppercase font-bold", 
-              severityColors[selectedAlert.severity]
+              severityColors[selectedAlert.severity],
+              severityBg[selectedAlert.severity]
             )}
           >
             {selectedAlert.severity}
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4 overflow-y-auto h-[calc(100%-60px)]">
+      <CardContent className="space-y-4 overflow-y-auto h-[calc(100%-60px)] p-4">
         <div>
           <h3 className="text-lg font-medium">{selectedAlert.title}</h3>
           <p className="text-muted-foreground">{selectedAlert.description}</p>
         </div>
 
         <div className="grid grid-cols-2 gap-2 text-sm">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-lg">
             <Camera className="h-4 w-4 text-security-blue" />
             <span className="text-muted-foreground">Camera:</span>
-            <span>{selectedAlert.camera}</span>
+            <span className="font-medium">{selectedAlert.camera}</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-lg">
             <Clock className="h-4 w-4 text-security-blue" />
             <span className="text-muted-foreground">Time:</span>
-            <span>{selectedAlert.timestamp}</span>
+            <span className="font-medium">{selectedAlert.timestamp}</span>
           </div>
         </div>
 
         {selectedAlert.imageUrl ? (
-          <div>
-            <h4 className="text-sm font-medium mb-2">Visual Evidence</h4>
-            <div className="bg-black/40 rounded-md h-36 flex items-center justify-center">
+          <div className="bg-slate-900 rounded-md h-36 flex items-center justify-center border border-slate-800">
+            <span className="text-muted-foreground text-xs">
+              [Image snapshot would appear here]
+            </span>
+          </div>
+        ) : (
+          <div className="bg-slate-900 rounded-md h-36 flex items-center justify-center border border-slate-800">
+            <div className="text-center">
+              <Eye className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
               <span className="text-muted-foreground text-xs">
-                [Image snapshot would appear here]
+                No image available
               </span>
             </div>
           </div>
-        ) : null}
+        )}
 
         <div>
-          <h4 className="text-sm font-medium mb-2">Detection Confidence</h4>
-          <div className="w-full bg-slate-700 rounded-full h-2">
+          <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+            <span>Detection Confidence</span>
+            <span className="text-xs text-muted-foreground font-normal">{selectedAlert.confidence || 85}%</span>
+          </h4>
+          <div className="w-full bg-slate-800 rounded-full h-2">
             <div 
               className={cn(
                 "h-2 rounded-full", 
                 selectedAlert.confidence && selectedAlert.confidence > 80 ? "bg-security-blue" :
                 selectedAlert.confidence && selectedAlert.confidence > 60 ? "bg-alert-medium" : "bg-alert-high"
               )}
-              style={{ width: `${selectedAlert.confidence}%` }}
+              style={{ width: `${selectedAlert.confidence || 85}%` }}
             />
-          </div>
-          <div className="text-right text-xs mt-1">
-            {selectedAlert.confidence}%
           </div>
         </div>
 
@@ -109,8 +131,9 @@ export const AlertDetails = ({ selectedAlert }: AlertDetailsProps) => {
               {selectedAlert.responseActions.map((action, index) => (
                 <li 
                   key={index} 
-                  className="text-sm bg-security-blue/10 text-security-blue px-3 py-2 rounded-md"
+                  className="text-sm bg-security-blue/10 text-security-blue px-3 py-2 rounded-md flex items-center gap-2"
                 >
+                  <CheckCircle className="h-3 w-3" />
                   {action}
                 </li>
               ))}
@@ -118,11 +141,9 @@ export const AlertDetails = ({ selectedAlert }: AlertDetailsProps) => {
           </div>
         )}
         
-        <div className="flex gap-2 pt-2">
+        <div className="grid grid-cols-2 gap-3 pt-2">
           <Button className="w-full">Acknowledge</Button>
           <Button className="w-full" variant="outline">False Alarm</Button>
-        </div>
-        <div className="flex gap-2">
           <Button className="w-full" variant="secondary">View Live Feed</Button>
           <Button className="w-full" variant="destructive">Escalate</Button>
         </div>

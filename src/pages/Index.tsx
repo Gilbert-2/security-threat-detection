@@ -19,9 +19,9 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-security-navy/30">
       <Header />
-      <main className="flex-grow p-4 grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <main className="flex-grow dashboard-grid">
         {/* Column 1 (Left - Narrower) */}
         <div className="lg:col-span-3 space-y-4">
           <AlertsSummary />
@@ -30,7 +30,7 @@ const Index = () => {
         
         {/* Column 2 (Center - Widest) */}
         <div className="lg:col-span-5 space-y-4">
-          <div className="h-[300px]">
+          <div className="h-[300px] security-glass rounded-lg overflow-hidden">
             <VideoFeed selectedCameraId={selectedAlert?.camera || "Main Entrance Camera"} />
           </div>
           <div className="h-[calc(100vh-500px)] min-h-[400px]">
