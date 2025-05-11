@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { AlertCircle, CheckCircle, Clock, Eye } from "lucide-react";
+import { AlertCircle, CheckCircle, Clock, Eye, Shield, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -15,6 +15,9 @@ export interface AlertItemProps {
   timestamp: string;
   severity: AlertSeverity;
   isAcknowledged?: boolean;
+  responseActions?: string[];
+  confidence?: number;
+  imageUrl?: string | null;
 }
 
 export const AlertItem = ({
@@ -25,11 +28,17 @@ export const AlertItem = ({
   timestamp,
   severity,
   isAcknowledged = false,
-}: AlertItemProps) => {
+  responseActions = [],
+  onClick,
+  isSelected,
+}: AlertItemProps & { 
+  onClick?: () => void;
+  isSelected?: boolean;
+}) => {
   const [acknowledged, setAcknowledged] = useState(isAcknowledged);
 
   const handleAcknowledge = (e: React.MouseEvent) => {
-    e.preventDefault();
+    e.stopPropagation();
     setAcknowledged(true);
   };
 
@@ -50,10 +59,12 @@ export const AlertItem = ({
   return (
     <div 
       className={cn(
-        "p-4 mb-3 security-glass rounded-md border-l-4 transition-all hover:bg-slate-800/50",
+        "p-4 mb-3 security-glass rounded-md border-l-4 transition-all hover:bg-slate-800/50 cursor-pointer",
         severityBorder[severity],
         !acknowledged && severity === "critical" && "animate-alert-blink",
+        isSelected && "bg-slate-800/70 ring-1 ring-security-blue",
       )}
+      onClick={onClick}
     >
       <div className="flex justify-between">
         <div className="flex flex-col">
@@ -75,6 +86,25 @@ export const AlertItem = ({
               <span>{timestamp}</span>
             </div>
           </div>
+          
+          {responseActions.length > 0 && (
+            <div className="mt-3">
+              <div className="flex items-center gap-2 text-xs text-security-blue">
+                <Shield className="h-3 w-3" />
+                <span className="font-medium">System Response:</span>
+              </div>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {responseActions.map((action, index) => (
+                  <span 
+                    key={index} 
+                    className="text-xs bg-security-blue/10 text-security-blue px-2 py-1 rounded-full"
+                  >
+                    {action}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         <div className="flex flex-col items-end gap-2">
           {!acknowledged ? (
