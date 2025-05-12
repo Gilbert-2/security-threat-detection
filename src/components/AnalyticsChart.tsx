@@ -68,7 +68,7 @@ export const AnalyticsChart = () => {
       </CardHeader>
       <CardContent className="p-4">
         <ResponsiveContainer width="100%" height={350}>
-          {chartType === "line" && (
+          {chartType === "line" ? (
             <LineChart
               data={displayData}
               margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
@@ -107,9 +107,7 @@ export const AnalyticsChart = () => {
                 name="Suspicious Activity"
               />
             </LineChart>
-          )}
-          
-          {chartType === "area" && (
+          ) : chartType === "area" ? (
             <AreaChart
               data={displayData}
               margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
@@ -150,9 +148,7 @@ export const AnalyticsChart = () => {
                 name="Suspicious Activity"
               />
             </AreaChart>
-          )}
-          
-          {chartType === "bar" && (
+          ) : (
             <BarChart
               data={displayData}
               margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
