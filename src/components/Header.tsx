@@ -48,7 +48,6 @@ export const Header = () => {
   const [unreadCount, setUnreadCount] = useState(2);
   const [searchValue, setSearchValue] = useState("");
   const navigate = useNavigate();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   const handleNotification = () => {
     toast({
@@ -83,39 +82,29 @@ export const Header = () => {
 
   return (
     <header className="flex items-center justify-between p-4 bg-slate-900/80 border-b border-slate-700/50 backdrop-blur-md sticky top-0 z-10">
-      <div className="flex items-center gap-3 md:hidden">
-        <Button 
-          variant="ghost" 
-          size="icon"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        >
-          {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </Button>
-      </div>
-      
-      <div className="hidden md:flex items-center gap-3">
+      <div className="flex items-center gap-3">
         <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-security-blue/20 text-security-blue">
           <Shield className="h-6 w-6" />
         </div>
         <div>
           <h1 className="text-xl font-bold bg-gradient-to-r from-security-blue to-accent bg-clip-text text-transparent">Security Threat Dashboard</h1>
-          <p className="text-xs text-muted-foreground">Real-time threat monitoring & response</p>
+          <p className="text-xs text-muted-foreground hidden sm:block">Real-time threat monitoring & response</p>
         </div>
       </div>
       
       <div className="flex items-center gap-2">
-        <form onSubmit={handleSearch} className="relative hidden md:flex items-center max-w-sm">
+        <form onSubmit={handleSearch} className="relative hidden md:flex items-center">
           <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
             placeholder="Search..."
-            className="pl-8 bg-slate-950/50 border-slate-800 w-[200px] h-9"
+            className="pl-8 bg-slate-950/50 border-slate-800 w-[200px] lg:w-[300px] h-9"
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
           />
         </form>
         
-        <span className="text-sm text-muted-foreground hidden md:flex items-center gap-1.5 mr-2">
+        <span className="text-sm text-muted-foreground hidden lg:flex items-center gap-1.5 ml-4">
           <span className="h-2 w-2 bg-green-500 rounded-full"></span>
           System Status: Active
         </span>
@@ -126,7 +115,7 @@ export const Header = () => {
             <Button 
               variant="outline" 
               size="sm" 
-              className="relative"
+              className="relative ml-2"
             >
               <Bell className="h-4 w-4" />
               {unreadCount > 0 && (
@@ -177,7 +166,7 @@ export const Header = () => {
         </DropdownMenu>
         
         {/* Settings Button */}
-        <Button variant="outline" size="sm" className="gap-2 hidden sm:flex" asChild>
+        <Button variant="outline" size="sm" className="gap-2 hidden sm:flex ml-2" asChild>
           <Link to="/settings">
             <Settings className="h-4 w-4" />
             <span className="hidden md:inline">Settings</span>
@@ -187,7 +176,7 @@ export const Header = () => {
         {/* Profile Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="secondary" size="sm" className="gap-2">
+            <Button variant="secondary" size="sm" className="gap-2 ml-2">
               <Avatar className="h-6 w-6">
                 <AvatarImage src="https://api.dicebear.com/7.x/initials/svg?seed=SA" />
                 <AvatarFallback>SA</AvatarFallback>

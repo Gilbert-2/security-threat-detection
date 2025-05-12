@@ -3,20 +3,11 @@ import { Header } from "@/components/Header";
 import { AlertsSummary } from "@/components/AlertsSummary";
 import { VideoFeed } from "@/components/VideoFeed";
 import { SystemStatus } from "@/components/SystemStatus";
-import { EventFeed } from "@/components/EventFeed";
-import { AlertDetails } from "@/components/AlertDetails";
 import { ResponseRulesSummary } from "@/components/ResponseRulesSummary";
 import { UserActivityLog } from "@/components/UserActivityLog";
-import { useState } from "react";
-import { AlertItemProps } from "@/components/AlertItem";
+import { AnalyticsChart } from "@/components/AnalyticsChart";
 
 const Index = () => {
-  const [selectedAlert, setSelectedAlert] = useState<AlertItemProps | null>(null);
-
-  const handleAlertSelect = (alert: AlertItemProps) => {
-    setSelectedAlert(alert);
-  };
-
   return (
     <div className="flex flex-col h-full">
       <Header />
@@ -29,35 +20,34 @@ const Index = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          {/* Column 1 (Left - Status and Summary) */}
-          <div className="lg:col-span-3 space-y-4">
-            <AlertsSummary />
+          {/* Status Section - Top row */}
+          <div className="lg:col-span-12">
             <SystemStatus />
           </div>
           
-          {/* Column 2 (Center - Video and Events) */}
-          <div className="lg:col-span-5 space-y-4">
+          {/* Video Feed Section - Second row */}
+          <div className="lg:col-span-6">
             <div className="h-[300px] security-glass rounded-lg overflow-hidden">
-              <VideoFeed selectedCameraId={selectedAlert?.camera || "Main Entrance Camera"} />
-            </div>
-            <div className="h-[calc(100vh-500px)] min-h-[400px]">
-              <EventFeed onAlertSelect={handleAlertSelect} selectedAlertId={selectedAlert?.id} />
+              <VideoFeed selectedCameraId="Main Entrance Camera" />
             </div>
           </div>
           
-          {/* Column 3 (Right - Details and Activity) */}
-          <div className="lg:col-span-4 space-y-4">
-            <div className="h-[400px]">
-              <AlertDetails selectedAlert={selectedAlert} />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4">
-              <div className="h-[200px]">
-                <ResponseRulesSummary />
-              </div>
-              <div className="h-[200px]">
-                <UserActivityLog />
-              </div>
-            </div>
+          {/* Alerts Summary Section */}
+          <div className="lg:col-span-6">
+            <AlertsSummary />
+          </div>
+          
+          {/* Rules and Activity Logs - Third row side by side */}
+          <div className="lg:col-span-6">
+            <ResponseRulesSummary />
+          </div>
+          <div className="lg:col-span-6">
+            <UserActivityLog />
+          </div>
+          
+          {/* Analytics Chart - Bottom row */}
+          <div className="lg:col-span-12 mt-4">
+            <AnalyticsChart />
           </div>
         </div>
       </main>
