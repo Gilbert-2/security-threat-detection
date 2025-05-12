@@ -9,7 +9,6 @@ import { ResponseRulesSummary } from "@/components/ResponseRulesSummary";
 import { UserActivityLog } from "@/components/UserActivityLog";
 import { useState } from "react";
 import { AlertItemProps } from "@/components/AlertItem";
-import { recentAlerts } from "@/data/mockData";
 
 const Index = () => {
   const [selectedAlert, setSelectedAlert] = useState<AlertItemProps | null>(null);
@@ -19,35 +18,44 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-security-navy/30">
+    <div className="flex flex-col h-full">
       <Header />
-      <main className="flex-grow dashboard-grid">
-        {/* Column 1 (Left - Narrower) */}
-        <div className="lg:col-span-3 space-y-4">
-          <AlertsSummary />
-          <SystemStatus />
-        </div>
-        
-        {/* Column 2 (Center - Widest) */}
-        <div className="lg:col-span-5 space-y-4">
-          <div className="h-[300px] security-glass rounded-lg overflow-hidden">
-            <VideoFeed selectedCameraId={selectedAlert?.camera || "Main Entrance Camera"} />
-          </div>
-          <div className="h-[calc(100vh-500px)] min-h-[400px]">
-            <EventFeed onAlertSelect={handleAlertSelect} selectedAlertId={selectedAlert?.id} />
+      <main className="p-4 flex-1 overflow-auto">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h2 className="text-2xl font-bold">Dashboard Overview</h2>
+            <p className="text-muted-foreground">Security status and recent events</p>
           </div>
         </div>
-        
-        {/* Column 3 (Right - Medium) */}
-        <div className="lg:col-span-4 space-y-4">
-          <div className="h-[400px]">
-            <AlertDetails selectedAlert={selectedAlert} />
+
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+          {/* Column 1 (Left - Narrower) */}
+          <div className="md:col-span-3 space-y-4">
+            <AlertsSummary />
+            <SystemStatus />
           </div>
-          <div className="h-[200px]">
-            <ResponseRulesSummary />
+          
+          {/* Column 2 (Center - Widest) */}
+          <div className="md:col-span-5 space-y-4">
+            <div className="h-[300px] security-glass rounded-lg overflow-hidden">
+              <VideoFeed selectedCameraId={selectedAlert?.camera || "Main Entrance Camera"} />
+            </div>
+            <div className="h-[calc(100vh-500px)] min-h-[400px]">
+              <EventFeed onAlertSelect={handleAlertSelect} selectedAlertId={selectedAlert?.id} />
+            </div>
           </div>
-          <div className="h-[200px]">
-            <UserActivityLog />
+          
+          {/* Column 3 (Right - Medium) */}
+          <div className="md:col-span-4 space-y-4">
+            <div className="h-[400px]">
+              <AlertDetails selectedAlert={selectedAlert} />
+            </div>
+            <div className="h-[200px]">
+              <ResponseRulesSummary />
+            </div>
+            <div className="h-[200px]">
+              <UserActivityLog />
+            </div>
           </div>
         </div>
       </main>
