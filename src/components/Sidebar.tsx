@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Shield, Video, Bell, Settings, User, Home, ChevronLeft, ChevronRight } from "lucide-react";
+import { Shield, Video, Bell, Settings, User, Home, ChevronLeft, ChevronRight, History, AlertCircle, Search } from "lucide-react";
 import { Button } from "./ui/button";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -16,7 +16,7 @@ export const Sidebar = ({ children }: SidebarProps) => {
     <div className="flex h-screen">
       {/* Sidebar */}
       <div className={cn(
-        "bg-slate-900 border-r border-slate-800 transition-all duration-300 flex flex-col justify-between",
+        "bg-slate-900 border-r border-slate-800 transition-all duration-300 flex flex-col justify-between z-20",
         collapsed ? "w-16" : "w-64"
       )}>
         {/* Logo and toggle */}
@@ -40,13 +40,15 @@ export const Sidebar = ({ children }: SidebarProps) => {
             <SidebarItem icon={Home} to="/" label="Dashboard" collapsed={collapsed} />
             <SidebarItem icon={Video} to="/video-feed" label="Live Video Feed" collapsed={collapsed} />
             <SidebarItem icon={Bell} to="/notifications" label="Notifications" collapsed={collapsed} />
+            <SidebarItem icon={History} to="/history" label="History" collapsed={collapsed} />
+            <SidebarItem icon={AlertCircle} to="/incidents" label="Incidents" collapsed={collapsed} />
           </nav>
         </div>
 
         {/* Bottom items */}
         <div className="p-2 border-t border-slate-800">
-          <SidebarItem icon={Settings} to="/settings" label="Settings" collapsed={collapsed} />
           <SidebarItem icon={User} to="/profile" label="Profile" collapsed={collapsed} />
+          <SidebarItem icon={Settings} to="/settings" label="Settings" collapsed={collapsed} />
           
           <Button 
             variant="ghost" 

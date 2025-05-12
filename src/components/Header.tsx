@@ -1,10 +1,10 @@
 
-import { Bell, Shield, User, Settings, Search } from "lucide-react";
+import { Bell, Shield, User, Settings, Search, Menu, X } from "lucide-react";
 import { Button } from "./ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,6 +46,9 @@ const notifications = [
 export const Header = () => {
   const { toast } = useToast();
   const [unreadCount, setUnreadCount] = useState(2);
+  const [searchValue, setSearchValue] = useState("");
+  const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   const handleNotification = () => {
     toast({
@@ -62,9 +65,35 @@ export const Header = () => {
     });
   };
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchValue.trim()) {
+      toast({
+        title: "Searching",
+        description: `Searching for "${searchValue}"`,
+      });
+      // In a real app, you would redirect to search results or filter current view
+    }
+  };
+
+  const handleNotificationClick = (notificationId: number) => {
+    navigate(`/notifications`);
+    // In a real app, you would also select the specific notification
+  };
+
   return (
     <header className="flex items-center justify-between p-4 bg-slate-900/80 border-b border-slate-700/50 backdrop-blur-md sticky top-0 z-10">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 md:hidden">
+        <Button 
+          variant="ghost" 
+          size="icon"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        >
+          {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </Button>
+      </div>
+      
+      <div className="hidden md:flex items-center gap-3">
         <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-security-blue/20 text-security-blue">
           <Shield className="h-6 w-6" />
         </div>
@@ -75,14 +104,16 @@ export const Header = () => {
       </div>
       
       <div className="flex items-center gap-2">
-        <div className="relative hidden md:flex items-center max-w-sm">
+        <form onSubmit={handleSearch} className="relative hidden md:flex items-center max-w-sm">
           <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
             placeholder="Search..."
             className="pl-8 bg-slate-950/50 border-slate-800 w-[200px] h-9"
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
           />
-        </div>
+        </form>
         
         <span className="text-sm text-muted-foreground hidden md:flex items-center gap-1.5 mr-2">
           <span className="h-2 w-2 bg-green-500 rounded-full"></span>
@@ -118,7 +149,10 @@ export const Header = () => {
             <DropdownMenuGroup>
               {notifications.map(notification => (
                 <DropdownMenuItem key={notification.id} className="p-0">
-                  <Link to="/notifications" className="flex flex-col w-full px-2 py-2 cursor-pointer">
+                  <div 
+                    onClick={() => handleNotificationClick(notification.id)} 
+                    className="flex flex-col w-full px-2 py-2 cursor-pointer"
+                  >
                     <div className="flex justify-between items-center">
                       <span className="font-medium text-sm flex items-center gap-1.5">
                         {notification.title}
@@ -129,7 +163,7 @@ export const Header = () => {
                       <span className="text-xs text-muted-foreground">{notification.time}</span>
                     </div>
                     <span className="text-xs text-muted-foreground mt-1">{notification.message}</span>
-                  </Link>
+                  </div>
                 </DropdownMenuItem>
               ))}
             </DropdownMenuGroup>
@@ -143,7 +177,7 @@ export const Header = () => {
         </DropdownMenu>
         
         {/* Settings Button */}
-        <Button variant="outline" size="sm" className="gap-2" asChild>
+        <Button variant="outline" size="sm" className="gap-2 hidden sm:flex" asChild>
           <Link to="/settings">
             <Settings className="h-4 w-4" />
             <span className="hidden md:inline">Settings</span>

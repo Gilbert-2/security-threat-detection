@@ -10,6 +10,8 @@ import VideoFeed from "./pages/VideoFeed";
 import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
+import History from "./pages/History";
+import Incidents from "./pages/Incidents";
 import { Sidebar } from "./components/Sidebar";
 
 const queryClient = new QueryClient();
@@ -27,6 +29,8 @@ const App = () => (
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/history" element={<History />} />
+            <Route path="/incidents" element={<Incidents />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
