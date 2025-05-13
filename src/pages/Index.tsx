@@ -25,15 +25,12 @@ const Index = () => {
             <SystemStatus />
           </div>
           
-          {/* Video Feed Section - Second row */}
-          <div className="lg:col-span-6">
-            <div className="h-[300px] security-glass rounded-lg overflow-hidden">
-              <VideoFeed selectedCameraId="Main Entrance Camera" />
-            </div>
+          {/* Video Feed and Alert Summary Section - equal height */}
+          <div className="lg:col-span-6 flex flex-col">
+            <VideoFeed selectedCameraId="Main Entrance Camera" />
           </div>
           
-          {/* Alerts Summary Section */}
-          <div className="lg:col-span-6">
+          <div className="lg:col-span-6 flex flex-col">
             <AlertsSummary />
           </div>
           
