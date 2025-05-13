@@ -26,11 +26,11 @@ const Index = () => {
           </div>
           
           {/* Video Feed and Alert Summary Section - equal height */}
-          <div className="lg:col-span-6 flex flex-col h-[350px]">
+          <div className="lg:col-span-6 flex flex-col h-[350px] mb-4">
             <VideoFeed selectedCameraId="Main Entrance Camera" />
           </div>
           
-          <div className="lg:col-span-6 flex flex-col h-[350px]">
+          <div className="lg:col-span-6 flex flex-col h-[350px] mb-4">
             <AlertsSummary />
           </div>
           
