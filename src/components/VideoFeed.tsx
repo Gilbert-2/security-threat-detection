@@ -37,7 +37,7 @@ export const VideoFeed = ({ selectedCameraId }: VideoFeedProps) => {
         <CardTitle className="text-lg">Live Video Feed</CardTitle>
       </CardHeader>
       <CardContent className="p-3 flex flex-col flex-1">
-        <div className="bg-slate-950 rounded-md relative flex-1 min-h-[250px]">
+        <div className="bg-slate-950 rounded-md relative flex-1 min-h-[200px]">
           <div className="absolute top-0 left-0 bg-black/50 text-white px-2 py-1 text-xs flex items-center gap-1 rounded-br-md">
             <Video className="h-3 w-3" />
             <span>{cameras.find(cam => cam.id === selectedCamera)?.name}</span>
