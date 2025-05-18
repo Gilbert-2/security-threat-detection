@@ -13,6 +13,7 @@ export interface SignupRequest {
   email: string;
   password: string;
   confirmPassword?: string;  // For client-side validation only
+  phoneNumber: string;
   department: string;
   role: string;
   picture?: string;

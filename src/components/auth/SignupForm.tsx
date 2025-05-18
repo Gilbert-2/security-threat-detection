@@ -17,6 +17,7 @@ const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
   password: z.string().min(6, { message: "Password must be at least 6 characters" }),
   confirmPassword: z.string().min(6, { message: "Confirm password is required" }),
+  phoneNumber: z.string().min(1, { message: "Phone number is required" }),
   department: z.string().min(1, { message: "Department is required" }),
   role: z.string().min(1, { message: "Role is required" }),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -42,9 +43,7 @@ const roles = [
   "user",
   "admin",
   "manager",
-  "operator",
-  "analyst",
-  "viewer"
+  "supervisor"
 ];
 
 interface SignupFormProps {
@@ -63,6 +62,7 @@ const SignupForm = ({ onSuccess }: SignupFormProps) => {
       email: "",
       password: "",
       confirmPassword: "",
+      phoneNumber: "",
       department: "",
       role: "user",
     },
@@ -76,6 +76,7 @@ const SignupForm = ({ onSuccess }: SignupFormProps) => {
         lastName: data.lastName,
         email: data.email,
         password: data.password,
+        phoneNumber: data.phoneNumber,
         department: data.department,
         role: data.role,
       });
@@ -148,6 +149,25 @@ const SignupForm = ({ onSuccess }: SignupFormProps) => {
                   type="email" 
                   {...field} 
                   autoComplete="email"
+                  disabled={isLoading}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="phoneNumber"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Phone Number</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="+1234567890" 
+                  {...field} 
+                  autoComplete="tel"
                   disabled={isLoading}
                 />
               </FormControl>
