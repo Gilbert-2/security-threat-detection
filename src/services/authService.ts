@@ -1,4 +1,3 @@
-
 import { User } from "./userService";
 import { toast } from "@/hooks/use-toast";
 
@@ -12,7 +11,7 @@ export interface SignupRequest {
   lastName: string;
   email: string;
   password: string;
-  confirmPassword?: string;  // For client-side validation only
+  confirmPassword?: string;  
   phoneNumber: string;
   department: string;
   role: string;
@@ -29,11 +28,7 @@ export const authService = {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          email: credentials.email,
-          password: credentials.password,
-        }),
-        credentials: "include", // For cookies if your API uses them
+        body: JSON.stringify(credentials),
       });
 
       if (!response.ok) {
@@ -41,17 +36,20 @@ export const authService = {
         throw new Error(errorData.message || "Login failed");
       }
 
-      const userData = await response.json();
+      const data = await response.json();
       
-      // Store user token in localStorage
-      if (userData.token) {
-        localStorage.setItem("authToken", userData.token);
+      // Store JWT token
+      if (data.access_token) {
+        localStorage.setItem("authToken", data.access_token);
       }
       
       // Store user data
-      localStorage.setItem("currentUser", JSON.stringify(userData.user || userData));
+      if (data.user) {
+        localStorage.setItem("currentUser", JSON.stringify(data.user));
+        return data.user;
+      }
       
-      return userData.user || userData;
+      throw new Error("Invalid response format from server");
     } catch (error: any) {
       toast({
         title: "Login Failed",
@@ -62,7 +60,7 @@ export const authService = {
     }
   },
 
-  signup: async (userData: SignupRequest): Promise<any> => {
+  signup: async (userData: SignupRequest): Promise<User> => {
     try {
       // Remove confirmPassword as it's not needed by the API
       const { confirmPassword, ...signupData } = userData;
@@ -100,7 +98,6 @@ export const authService = {
   logout: (): void => {
     localStorage.removeItem("authToken");
     localStorage.removeItem("currentUser");
-    // You can add an API call if your backend requires logout notification
   },
 
   getCurrentUser: (): User | null => {

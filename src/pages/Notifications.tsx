@@ -1,67 +1,30 @@
-
 import { Header } from "@/components/Header";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Bell, Check, Clock, Fingerprint, Shield, UserX } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
-// Mock notifications data
-const notifications = [
-  {
-    id: 1,
-    title: "Unauthorized Access Attempt",
-    description: "Someone attempted to access restricted area A-7 without proper credentials.",
-    time: "10 minutes ago",
-    read: false,
-    type: "security",
-    details: "IP Address: 192.168.1.45\nLocation: Server Room\nAttempt Count: 3\nAction Taken: Access denied and security alert triggered. The system has logged the MAC address and device information for further investigation."
-  },
-  {
-    id: 2,
-    title: "System Update Available",
-    description: "A new security patch is available for installation.",
-    time: "2 hours ago",
-    read: false,
-    type: "system",
-    details: "Update Version: 2.5.3\nPriority: High\nChanges: This update addresses critical vulnerabilities in the authentication module and improves overall system stability. It's recommended to apply this update as soon as possible to maintain security standards."
-  },
-  {
-    id: 3,
-    title: "Camera 4 Offline",
-    description: "The camera in the east corridor is currently offline.",
-    time: "Yesterday",
-    read: true,
-    type: "hardware",
-    details: "Device ID: CAM-EAST-04\nLast Seen: May 11, 2025 at 15:42\nDiagnostic Info: Connection lost suddenly, power supply seems operational. The system has attempted automatic reset 3 times without success. Manual inspection required."
-  },
-  {
-    id: 4,
-    title: "Motion Detected",
-    description: "Motion detected in restricted area during off-hours.",
-    time: "Yesterday",
-    read: true,
-    type: "security",
-    details: "Location: R&D Lab\nTime: May 11, 2025 at 23:17\nDuration: 4 minutes 28 seconds\nVerification: Security footage has been flagged for review. Two individuals identified, confirming against authorized personnel database. Initial facial recognition suggests maintenance staff."
-  },
-  {
-    id: 5,
-    title: "User Account Locked",
-    description: "User account 'jsmith' has been locked due to multiple failed login attempts.",
-    time: "2 days ago",
-    read: true,
-    type: "user",
-    details: "User: John Smith (jsmith)\nDepartment: IT Support\nFailed Attempts: 5\nTime Period: May 10, 2025 between 08:15-08:30\nIP Addresses: Multiple locations detected, possible credential theft attempt. Security team has been notified for follow-up."
-  }
-];
+interface Notification {
+  id: string;
+  title: string;
+  description: string;
+  createdAt: string;
+  read: boolean;
+  type: 'security' | 'system' | 'hardware' | 'user';
+  details: string;
+  userId: string;
+}
 
 const NotificationItem = ({ 
   notification, 
   isSelected, 
   onClick 
 }: { 
-  notification: typeof notifications[0], 
+  notification: Notification, 
   isSelected: boolean, 
   onClick: () => void 
 }) => {
@@ -72,13 +35,27 @@ const NotificationItem = ({
     user: <UserX className="text-purple-500 h-5 w-5" />
   };
 
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+    
+    if (diffInMinutes < 60) {
+      return `${diffInMinutes} minutes ago`;
+    } else if (diffInMinutes < 24 * 60) {
+      return `${Math.floor(diffInMinutes / 60)} hours ago`;
+    } else {
+      return date.toLocaleDateString();
+    }
+  };
+
   return (
     <div 
       className={`p-3 border-b last:border-0 cursor-pointer flex items-start hover:bg-slate-800/50 ${isSelected ? 'bg-slate-800/50' : ''} ${!notification.read ? 'border-l-2 border-l-security-blue' : ''}`}
       onClick={onClick}
     >
       <div className="mr-3">
-        {iconMap[notification.type as keyof typeof iconMap]}
+        {iconMap[notification.type]}
       </div>
       <div className="flex-1">
         <div className="flex justify-between">
@@ -88,7 +65,7 @@ const NotificationItem = ({
           </h4>
           <span className="text-xs text-muted-foreground flex items-center">
             <Clock className="inline h-3 w-3 mr-1" />
-            {notification.time}
+            {formatTime(notification.createdAt)}
           </span>
         </div>
         <p className="text-xs text-muted-foreground mt-1">{notification.description}</p>
@@ -98,29 +75,112 @@ const NotificationItem = ({
 };
 
 const Notifications = () => {
-  const [selectedNotification, setSelectedNotification] = useState(notifications[0]);
-  const [notificationList, setNotificationList] = useState(notifications);
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("all");
-  
-  const markAsRead = (id: number) => {
-    setNotificationList(prev => prev.map(notification => 
-      notification.id === id ? { ...notification, read: true } : notification
-    ));
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  const fetchNotifications = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      const response = await axios.get('http://localhost:7070/notifications', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      setNotifications(response.data);
+      if (response.data.length > 0) {
+        setSelectedNotification(response.data[0]);
+      }
+    } catch (err) {
+      setError('Failed to fetch notifications');
+      console.error('Error fetching notifications:', err);
+    } finally {
+      setLoading(false);
+    }
   };
-  
-  const handleSelect = (notification: typeof notifications[0]) => {
+
+  const markAsRead = async (id: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.patch(`http://localhost:7070/notifications/${id}/read`, {}, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      setNotifications(prev => prev.map(notification => 
+        notification.id === id ? { ...notification, read: true } : notification
+      ));
+    } catch (err) {
+      console.error('Error marking notification as read:', err);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.patch('http://localhost:7070/notifications/read-all', {}, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    } catch (err) {
+      console.error('Error marking all notifications as read:', err);
+    }
+  };
+
+  const handleSelect = (notification: Notification) => {
     setSelectedNotification(notification);
-    markAsRead(notification.id);
+    if (!notification.read) {
+      markAsRead(notification.id);
+    }
   };
-  
-  const filteredNotifications = notificationList.filter(notification => {
+
+  const filteredNotifications = notifications.filter(notification => {
     if (activeTab === "all") return true;
     if (activeTab === "unread") return !notification.read;
     return notification.type === activeTab;
   });
-  
-  const unreadCount = notificationList.filter(n => !n.read).length;
-  
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  if (loading) {
+    return (
+      <div className="flex flex-col h-full">
+        <Header />
+        <div className="p-4 flex-1 flex items-center justify-center">
+          <p>Loading notifications...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col h-full">
+        <Header />
+        <div className="p-4 flex-1 flex items-center justify-center">
+          <p className="text-red-500">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full">
       <Header />
@@ -136,9 +196,7 @@ const Notifications = () => {
             variant="outline" 
             size="sm" 
             className="gap-2"
-            onClick={() => setNotificationList(prev => 
-              prev.map(n => ({ ...n, read: true }))
-            )}
+            onClick={markAllAsRead}
           >
             <Check className="h-4 w-4" />
             Mark all as read
@@ -153,7 +211,7 @@ const Notifications = () => {
                 <Tabs defaultValue="all" className="w-full" value={activeTab} onValueChange={setActiveTab}>
                   <TabsList className="grid grid-cols-4 w-full">
                     <TabsTrigger value="all">
-                      All <Badge className="ml-1">{notificationList.length}</Badge>
+                      All <Badge className="ml-1">{notifications.length}</Badge>
                     </TabsTrigger>
                     <TabsTrigger value="unread">
                       Unread <Badge className="ml-1">{unreadCount}</Badge>
@@ -183,37 +241,45 @@ const Notifications = () => {
           </div>
           
           <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  {selectedNotification?.title}
-                  <Badge variant={selectedNotification?.read ? "outline" : "default"}>
-                    {selectedNotification?.read ? "Read" : "New"}
-                  </Badge>
-                </CardTitle>
-                <CardDescription className="flex justify-between">
-                  <span>Type: {selectedNotification?.type}</span>
-                  <span>{selectedNotification?.time}</span>
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2 p-3 bg-slate-800/50 rounded-lg mb-4">
-                  <Fingerprint className="text-security-blue h-5 w-5" />
-                  <span className="text-sm">{selectedNotification?.description}</span>
-                </div>
-                
-                <h4 className="font-medium mb-2">Detailed Information</h4>
-                <pre className="whitespace-pre-wrap text-sm text-muted-foreground p-3 bg-slate-900 rounded-lg">
-                  {selectedNotification?.details}
-                </pre>
-                
-                <div className="mt-6 flex gap-2">
-                  <Button variant="default" size="sm">Acknowledge</Button>
-                  <Button variant="outline" size="sm">Forward</Button>
-                  <Button variant="secondary" size="sm">View Related</Button>
-                </div>
-              </CardContent>
-            </Card>
+            {selectedNotification ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    {selectedNotification.title}
+                    <Badge variant={selectedNotification.read ? "outline" : "default"}>
+                      {selectedNotification.read ? "Read" : "New"}
+                    </Badge>
+                  </CardTitle>
+                  <CardDescription className="flex justify-between">
+                    <span>Type: {selectedNotification.type}</span>
+                    <span>{new Date(selectedNotification.createdAt).toLocaleString()}</span>
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-2 p-3 bg-slate-800/50 rounded-lg mb-4">
+                    <Fingerprint className="text-security-blue h-5 w-5" />
+                    <span className="text-sm">{selectedNotification.description}</span>
+                  </div>
+                  
+                  <h4 className="font-medium mb-2">Detailed Information</h4>
+                  <pre className="whitespace-pre-wrap text-sm text-muted-foreground p-3 bg-slate-900 rounded-lg">
+                    {selectedNotification.details}
+                  </pre>
+                  
+                  <div className="mt-6 flex gap-2">
+                    <Button variant="default" size="sm">Acknowledge</Button>
+                    <Button variant="outline" size="sm">Forward</Button>
+                    <Button variant="secondary" size="sm">View Related</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="p-6 text-center text-muted-foreground">
+                  Select a notification to view details
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
