@@ -6,8 +6,38 @@ import { SystemStatus } from "@/components/SystemStatus";
 import { ResponseRulesSummary } from "@/components/ResponseRulesSummary";
 import { UserActivityLog } from "@/components/UserActivityLog";
 import { AnalyticsChart } from "@/components/AnalyticsChart";
+import { useEffect, useState } from "react";
+import { userService } from "@/services";
+import { useToast } from "@/components/ui/use-toast";
 
 const Index = () => {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  
+  // Log user activity when dashboard is loaded
+  useEffect(() => {
+    const logDashboardActivity = async () => {
+      try {
+        setLoading(true);
+        await userService.logUserActivity({
+          user: "Current User", // This would come from auth context in a real app
+          action: "Accessed security dashboard"
+        });
+        setLoading(false);
+      } catch (error) {
+        console.error("Error logging activity:", error);
+        toast({
+          title: "Connection Error",
+          description: "Could not connect to security services. Some data may be unavailable.",
+          variant: "destructive"
+        });
+        setLoading(false);
+      }
+    };
+    
+    logDashboardActivity();
+  }, [toast]);
+
   return (
     <div className="flex flex-col h-full">
       <Header />
@@ -25,12 +55,12 @@ const Index = () => {
             <SystemStatus />
           </div>
           
-          {/* Video Feed and Alert Summary Section - equal height */}
-          <div className="lg:col-span-6 flex flex-col">
+          {/* Video Feed and Alert Summary Section - make sure they have equal height */}
+          <div className="lg:col-span-6 flex flex-col mb-4">
             <VideoFeed selectedCameraId="Main Entrance Camera" />
           </div>
           
-          <div className="lg:col-span-6 flex flex-col">
+          <div className="lg:col-span-6 flex flex-col mb-4">
             <AlertsSummary />
           </div>
           
