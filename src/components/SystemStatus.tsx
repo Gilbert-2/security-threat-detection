@@ -9,25 +9,25 @@ export const SystemStatus = () => {
     {
       title: "Active Cameras",
       value: "Loading...",
-      status: "normal" as const,
+      status: "normal" as "normal" | "warning" | "critical",
       icon: <Camera className="h-5 w-5 text-yellow-500" />,
     },
     {
       title: "Video Processing",
       value: "Loading...",
-      status: "normal" as const,
+      status: "normal" as "normal" | "warning" | "critical",
       icon: <Video className="h-5 w-5 text-green-500" />,
     },
     {
       title: "Threats Detected Today",
       value: "Loading...",
-      status: "normal" as const,
+      status: "normal" as "normal" | "warning" | "critical",
       icon: <ShieldAlert className="h-5 w-5 text-security-red" />,
     },
     {
       title: "System Uptime",
       value: "Loading...",
-      status: "normal" as const,
+      status: "normal" as "normal" | "warning" | "critical",
       icon: <Monitor className="h-5 w-5 text-green-500" />,
     },
   ]);
@@ -57,7 +57,7 @@ export const SystemStatus = () => {
           {
             title: "Video Processing",
             value: "Normal",
-            status: "normal" as const,
+            status: "normal" as "normal" | "warning" | "critical",
             icon: <Video className="h-5 w-5 text-green-500" />,
           },
           {
@@ -69,7 +69,7 @@ export const SystemStatus = () => {
           {
             title: "System Uptime",
             value: "99.8%",
-            status: "normal" as const,
+            status: "normal" as "normal" | "warning" | "critical",
             icon: <Monitor className="h-5 w-5 text-green-500" />,
           },
         ]);
