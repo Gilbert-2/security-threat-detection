@@ -1,15 +1,15 @@
-
 import api from "./api";
 import { userActivities } from "@/data/mockData";
 
 export interface User {
-  id: string;
-  username: string;
-  fullName: string;
+  id?: string;
   email: string;
+  firstName: string;
+  lastName: string;
   role: string;
-  lastLogin?: string;
-  status: "active" | "inactive" | "locked";
+  department?: string;
+  picture?: string;
+  token?: string;
 }
 
 export interface UserActivity {
@@ -25,30 +25,33 @@ export interface UserActivity {
 const mockUsers: User[] = [
   { 
     id: "user-1", 
-    username: "admin", 
-    fullName: "Admin User", 
     email: "admin@securitysystem.com", 
+    firstName: "Admin", 
+    lastName: "User", 
     role: "Administrator", 
-    lastLogin: new Date().toISOString(),
-    status: "active"
+    department: "Security", 
+    picture: "admin.jpg", 
+    token: "adminToken"
   },
   { 
     id: "user-2", 
-    username: "operator", 
-    fullName: "Security Operator", 
     email: "operator@securitysystem.com", 
+    firstName: "Operator", 
+    lastName: "User", 
     role: "Operator", 
-    lastLogin: new Date().toISOString(),
-    status: "active"
+    department: "Security", 
+    picture: "operator.jpg", 
+    token: "operatorToken"
   },
   { 
     id: "user-3", 
-    username: "viewer", 
-    fullName: "Security Viewer", 
     email: "viewer@securitysystem.com", 
+    firstName: "Viewer", 
+    lastName: "User", 
     role: "Viewer", 
-    lastLogin: new Date().toISOString(),
-    status: "active"
+    department: "Security", 
+    picture: "viewer.jpg", 
+    token: "viewerToken"
   }
 ];
 

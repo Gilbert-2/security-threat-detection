@@ -1,152 +1,214 @@
 
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useLocation, NavLink, Outlet } from "react-router-dom";
 import { 
-  BarChart3, Camera, Clock, Home, 
-  LogOut, Menu, Settings, ShieldAlert, User, Bell
+  Bell, 
+  History as HistoryIcon, 
+  Home,
+  LogOut,
+  Menu, 
+  Settings, 
+  Shield,
+  ShieldAlert,
+  UserCircle,
+  Video
 } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useMobile } from "@/hooks/use-mobile";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
-import { useState } from "react";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
-const navItems = [
-  { name: 'Dashboard', icon: Home, path: '/' },
-  { name: 'Video Feed', icon: Camera, path: '/video-feed' },
-  { name: 'Incidents', icon: ShieldAlert, path: '/incidents' },
-  { name: 'Notifications', icon: Bell, path: '/notifications' },
-  { name: 'History', icon: Clock, path: '/history' },
-  { name: 'Analytics', icon: BarChart3, path: '/analytics' },
+// Navigation items for the sidebar
+const navigationItems = [
+  {
+    name: "Dashboard",
+    path: "/",
+    icon: Home
+  },
+  {
+    name: "Video Feed",
+    path: "/video-feed",
+    icon: Video
+  },
+  {
+    name: "Incidents",
+    path: "/incidents",
+    icon: ShieldAlert
+  },
+  {
+    name: "Notifications",
+    path: "/notifications",
+    icon: Bell
+  },
+  {
+    name: "History",
+    path: "/history",
+    icon: HistoryIcon
+  },
 ];
 
-export const Sidebar = () => {
-  const isMobile = useMobile();
-  const [open, setOpen] = useState(false);
+// User-related navigation items
+const userNavigationItems = [
+  {
+    name: "Profile",
+    path: "/profile",
+    icon: UserCircle
+  },
+  {
+    name: "Settings",
+    path: "/settings",
+    icon: Settings
+  },
+];
+
+// The shared sidebar content component used by both desktop and mobile views
+const SidebarContent = () => {
+  const { pathname } = useLocation();
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { toast } = useToast();
 
   const handleLogout = () => {
     logout();
     toast({
-      title: "Logged out successfully",
-      description: "You have been logged out of your account.",
+      title: "Logged out",
+      description: "You have been successfully logged out",
     });
-    navigate('/landing');
   };
 
-  // Create a utility component for consistent nav items
-  const NavItem = ({ 
-    icon: Icon, 
-    name, 
-    path 
-  }: { 
-    icon: React.ComponentType<any>; 
-    name: string; 
-    path: string; 
-  }) => (
-    <NavLink
-      to={path}
-      onClick={() => isMobile && setOpen(false)}
-      className={({ isActive }) => `
-        flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors
-        ${isActive 
-          ? 'bg-slate-800/80 text-white' 
-          : 'text-muted-foreground hover:text-white hover:bg-slate-800/50'
-        }
-      `}
-    >
-      <Icon className="h-5 w-5" />
-      <span>{name}</span>
-    </NavLink>
-  );
+  // Function to generate initials from name
+  const getInitials = (name: string) => {
+    if (!name) return "U";
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  };
 
-  const sidebarContent = (
-    <div className="flex flex-col h-full py-6 bg-sidebar-background text-sidebar-foreground">
-      <div className="flex items-center gap-2 px-6 mb-8">
-        <div className="flex items-center justify-center w-8 h-8 rounded-md bg-security-blue/20 text-security-blue">
-          <ShieldAlert className="h-5 w-5" />
-        </div>
-        <div className="space-y-1">
-          <h2 className="font-semibold text-lg leading-none tracking-tight">SecurityMonitor</h2>
-          <p className="text-xs text-muted-foreground">Threat detection dashboard</p>
+  // Get initials for avatar
+  const userInitials = user ? getInitials(`${user.firstName} ${user.lastName}`) : "U";
+
+  // User display name
+  const userName = user ? `${user.firstName} ${user.lastName}` : "User";
+
+  return (
+    <div className="flex h-full flex-col">
+      <div className="flex h-16 items-center justify-center border-b border-slate-700/50">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center w-8 h-8 rounded-md bg-security-blue/20 text-security-blue">
+            <Shield className="h-5 w-5" />
+          </div>
+          <span className="text-lg font-semibold bg-gradient-to-r from-security-blue to-accent bg-clip-text text-transparent">
+            Security Monitor
+          </span>
         </div>
       </div>
-
-      <div className="flex-1 px-3 py-2 space-y-1">
-        {navItems.map(item => (
-          <NavItem key={item.path} icon={item.icon} name={item.name} path={item.path} />
-        ))}
-      </div>
-
-      <Separator className="my-4 bg-slate-700/50" />
-      
-      <div className="px-3 py-2 space-y-1">
-        <NavItem icon={User} name="Profile" path="/profile" />
-        <NavItem icon={Settings} name="Settings" path="/settings" />
-        <button 
-          className="flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors w-full text-left text-muted-foreground hover:text-white hover:bg-slate-800/50"
-          onClick={handleLogout}
-        >
-          <LogOut className="h-5 w-5" />
-          <span>Logout</span>
-        </button>
-      </div>
-
-      {user && (
-        <div className="px-3 mt-6 mb-2">
-          <div className="flex items-center gap-3 p-3 rounded-md bg-slate-800/50">
-            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-700 text-white">
-              {user.firstName?.[0]}{user.lastName?.[0] || ''}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium leading-none">{user.firstName} {user.lastName}</p>
-              <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+      <ScrollArea className="flex-1">
+        <nav className="flex flex-col gap-1 p-2">
+          <div className="py-2">
+            {navigationItems.map((item) => (
+              <Tooltip key={item.path}>
+                <TooltipTrigger asChild>
+                  <NavLink
+                    to={item.path}
+                    className={({ isActive }) =>
+                      `group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-accent/50 ${
+                        isActive ? "bg-accent text-accent-foreground" : "transparent"
+                      }`
+                    }
+                    end={item.path === "/"}
+                  >
+                    <item.icon className="h-5 w-5" />
+                    <span>{item.name}</span>
+                  </NavLink>
+                </TooltipTrigger>
+                <TooltipContent side="right">{item.name}</TooltipContent>
+              </Tooltip>
+            ))}
+          </div>
+          <Separator className="my-2 bg-slate-700/50" />
+          <div className="py-2">
+            <p className="mb-2 px-3 text-xs font-medium text-muted-foreground">User</p>
+            {userNavigationItems.map((item) => (
+              <Tooltip key={item.path}>
+                <TooltipTrigger asChild>
+                  <NavLink
+                    to={item.path}
+                    className={({ isActive }) =>
+                      `group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-accent/50 ${
+                        isActive ? "bg-accent text-accent-foreground" : "transparent"
+                      }`
+                    }
+                  >
+                    <item.icon className="h-5 w-5" />
+                    <span>{item.name}</span>
+                  </NavLink>
+                </TooltipTrigger>
+                <TooltipContent side="right">{item.name}</TooltipContent>
+              </Tooltip>
+            ))}
+          </div>
+        </nav>
+      </ScrollArea>
+      <div className="p-2">
+        <div className="flex items-center justify-between rounded-md p-2">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={user?.picture} alt={userName} />
+              <AvatarFallback>{userInitials}</AvatarFallback>
+            </Avatar>
+            <div className="overflow-hidden">
+              <p className="truncate text-sm font-medium">{userName}</p>
+              <p className="truncate text-xs text-muted-foreground">{user?.role || 'User'}</p>
             </div>
           </div>
+          <Button variant="ghost" size="icon" onClick={handleLogout}>
+            <LogOut className="h-5 w-5" />
+          </Button>
         </div>
-      )}
+      </div>
     </div>
   );
+};
+
+// The main Sidebar component that conditionally renders based on viewport size
+export const Sidebar = () => {
+  const isMobile = useIsMobile();
 
   if (isMobile) {
     return (
-      <div>
-        <div className="sticky top-0 z-30 flex items-center gap-2 bg-background/80 backdrop-blur-sm p-3 border-b">
-          <Sheet open={open} onOpenChange={setOpen}>
+      <div className="flex min-h-screen flex-col">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-slate-700/50 bg-slate-900/80 px-4 backdrop-blur-lg">
+          <Sheet>
             <SheetTrigger asChild>
               <Button variant="outline" size="icon" className="shrink-0">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="p-0">
-              {sidebarContent}
+            <SheetContent side="left" className="w-[270px] border-slate-700/50 bg-background p-0">
+              <SidebarContent />
             </SheetContent>
           </Sheet>
-          
           <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center w-7 h-7 rounded-md bg-security-blue/20 text-security-blue">
-              <ShieldAlert className="h-4 w-4" />
-            </div>
-            <h2 className="font-semibold tracking-tight">SecurityMonitor</h2>
+            <Shield className="h-5 w-5 text-security-blue" />
+            <span className="text-lg font-semibold">Security Monitor</span>
           </div>
-        </div>
-        <div className="p-0">
+        </header>
+        <main className="flex-1">
           <Outlet />
-        </div>
+        </main>
       </div>
     );
   }
 
   return (
     <div className="flex min-h-screen">
-      <aside className="hidden md:flex flex-col w-64 border-r border-slate-700/50">
-        {sidebarContent}
+      <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 border-r border-slate-700/50 bg-background sm:flex sm:flex-col">
+        <SidebarContent />
       </aside>
-      <div className="flex-1 flex flex-col">
+      <main className="flex-1 sm:ml-64">
         <Outlet />
-      </div>
+      </main>
     </div>
   );
 };
