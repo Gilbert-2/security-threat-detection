@@ -37,12 +37,12 @@ export const SystemStatus = () => {
       try {
         // Get camera summary data
         const cameraSummary = await cameraService.getCameraSummary();
-        const cameraStatus = cameraSummary.offline > 0 ? "warning" : "normal";
+        const cameraStatus = cameraSummary.offline > 0 ? "warning" as const : "normal" as const;
         
         // Get alerts summary data
         const alertSummaryData = await alertService.getAlertSummary();
-        const alertStatus = alertSummaryData.critical > 0 ? "critical" : 
-                           alertSummaryData.high > 0 ? "warning" : "normal";
+        const alertStatus = alertSummaryData.critical > 0 ? "critical" as const : 
+                           alertSummaryData.high > 0 ? "warning" as const : "normal" as const;
         
         // Get response rules stats
         const responseStats = await responseRuleService.getResponseStats();
@@ -51,7 +51,7 @@ export const SystemStatus = () => {
           {
             title: "Active Cameras",
             value: `${cameraSummary.online}/${cameraSummary.total}`,
-            status: cameraStatus as "normal" | "warning" | "critical",
+            status: cameraStatus,
             icon: <Camera className="h-5 w-5 text-yellow-500" />,
           },
           {
@@ -63,7 +63,7 @@ export const SystemStatus = () => {
           {
             title: "Threats Detected Today",
             value: `${alertSummaryData.total}`,
-            status: alertStatus as "normal" | "warning" | "critical",
+            status: alertStatus,
             icon: <ShieldAlert className="h-5 w-5 text-security-red" />,
           },
           {

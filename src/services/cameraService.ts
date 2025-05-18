@@ -17,7 +17,7 @@ export interface CameraSummary {
 }
 
 // Mock cameras data - this would come from the backend
-const mockCameras = [
+const mockCameras: Camera[] = [
   { id: "cam-1", name: "Main Entrance Camera", location: "Main Entrance", status: "online", lastPing: new Date().toISOString() },
   { id: "cam-2", name: "Lobby Camera 2", location: "Main Lobby", status: "online", lastPing: new Date().toISOString() },
   { id: "cam-3", name: "Emergency Exit B", location: "East Wing", status: "online", lastPing: new Date().toISOString() },
