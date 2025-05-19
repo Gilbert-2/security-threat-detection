@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Shield, LogIn, UserPlus } from "lucide-react";
@@ -100,7 +101,7 @@ const Landing = () => {
       </Dialog>
 
       <Dialog open={signupOpen} onOpenChange={setSignupOpen}>
-        <DialogContent className="sm:max-w-[600px] bg-slate-800 border-slate-700">
+        <DialogContent className="sm:max-w-[450px] md:max-w-[500px] bg-slate-800 border-slate-700 max-h-[90vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-security-blue">Create Account</DialogTitle>
             <DialogDescription>
