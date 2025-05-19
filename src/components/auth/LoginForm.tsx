@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -37,19 +36,25 @@ const LoginForm = ({ onSuccess }: LoginFormProps) => {
   
   const onSubmit = async (data: FormValues) => {
     setIsLoading(true);
+    console.log('Attempting login with email:', data.email); // Debug log
+    
     try {
+      console.log('Calling authService.login...'); // Debug log
       const user = await authService.login({
         email: data.email,
         password: data.password,
       });
       
+      console.log('Login successful, user data:', user); // Debug log
       setUser(user);
+      
       toast({
         title: "Login successful",
         description: "Welcome back!",
       });
       
       if (onSuccess) {
+        console.log('Calling onSuccess callback...'); // Debug log
         onSuccess();
       }
     } catch (error: any) {

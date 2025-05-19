@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -6,9 +5,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, CheckCircle2 } from "lucide-react";
+import { Loader2, CheckCircle2, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { authService } from "@/services/authService";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const signupSchema = z.object({
   firstName: z.string().min(2, "First name must be at least 2 characters"),
@@ -18,7 +18,10 @@ const signupSchema = z.object({
   confirmPassword: z.string(),
   department: z.string().optional(),
   phoneNumber: z.string().optional(),
-  role: z.string().optional(),
+  role: z.enum(["user", "admin", "supervisor"], {
+    required_error: "Please select a role",
+  }),
+  picture: z.any().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -39,7 +42,22 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
     }
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [profilePicture, setProfilePicture] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const { toast } = useToast();
+
+  const handlePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setProfilePicture(file);
+      setValue("picture", file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const onSubmit = async (data: SignupFormValues) => {
     try {
@@ -56,7 +74,8 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
         password: data.password,
         department: data.department,
         phoneNumber: data.phoneNumber,
-        role: data.role || "user",
+        role: data.role,
+        picture: profilePicture,
       });
 
       toast({
@@ -97,6 +116,28 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-h-[60vh] overflow-y-auto py-4 px-1">
+      <div className="flex flex-col items-center space-y-4 mb-4">
+        <Avatar className="h-24 w-24">
+          <AvatarImage src={previewUrl || undefined} />
+          <AvatarFallback>{watch("firstName")?.[0]}{watch("lastName")?.[0]}</AvatarFallback>
+        </Avatar>
+        <div className="flex items-center gap-2">
+          <Input
+            type="file"
+            accept="image/*"
+            onChange={handlePictureChange}
+            className="hidden"
+            id="picture"
+          />
+          <label htmlFor="picture">
+            <Button type="button" variant="outline" size="sm" className="gap-2">
+              <Upload className="h-4 w-4" />
+              Upload Picture
+            </Button>
+          </label>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <label htmlFor="firstName" className="text-sm font-medium">
@@ -168,16 +209,39 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
         </div>
         
         <div className="space-y-2">
-          <label htmlFor="phoneNumber" className="text-sm font-medium">
-            Phone Number (optional)
+          <label htmlFor="role" className="text-sm font-medium">
+            Role
           </label>
-          <Input
-            id="phoneNumber"
-            {...register("phoneNumber")}
-            autoComplete="tel"
+          <Select 
+            defaultValue="user"
+            onValueChange={(value) => setValue("role", value)}
             disabled={isLoading}
-          />
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="user">User</SelectItem>
+              <SelectItem value="admin">Admin</SelectItem>
+              <SelectItem value="supervisor">Supervisor</SelectItem>
+            </SelectContent>
+          </Select>
+          {errors.role && (
+            <p className="text-sm text-red-500">{errors.role.message}</p>
+          )}
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <label htmlFor="phoneNumber" className="text-sm font-medium">
+          Phone Number (optional)
+        </label>
+        <Input
+          id="phoneNumber"
+          {...register("phoneNumber")}
+          autoComplete="tel"
+          disabled={isLoading}
+        />
       </div>
 
       <div className="space-y-2">

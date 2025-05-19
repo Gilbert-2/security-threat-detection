@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { userService, UserActivity as UserActivityType } from "@/services/userService";
+import { userService, UserActivity, ActivityType } from "@/services/userService";
 import { useToast } from "@/hooks/use-toast";
 import { Search, Calendar, Clock, User, Download } from "lucide-react";
 import {
@@ -27,12 +26,12 @@ import { format, isWithinInterval, parseISO, startOfDay, endOfDay } from "date-f
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 
 const UserActivityPage = () => {
-  const [activities, setActivities] = useState<UserActivityType[]>([]);
+  const [activities, setActivities] = useState<UserActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activityTypes, setActivityTypes] = useState<Record<string, number>>({});
-  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [activityTypes, setActivityTypes] = useState<Record<ActivityType, number>>({} as Record<ActivityType, number>);
+  const [typeFilter, setTypeFilter] = useState<ActivityType | "all">("all");
   const [date, setDate] = useState<DateRange | undefined>();
   const [users, setUsers] = useState<{ id: string; name: string }[]>([]);
   const [userFilter, setUserFilter] = useState<string>("all");
@@ -86,16 +85,16 @@ const UserActivityPage = () => {
   // Filter activities based on search query, type, date range and user
   const filteredActivities = activities.filter(activity => {
     const matchesSearch = 
-      activity.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (activity.details && activity.details.toLowerCase().includes(searchQuery.toLowerCase()));
+      activity.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (activity.metadata && JSON.stringify(activity.metadata).toLowerCase().includes(searchQuery.toLowerCase()));
     
     const matchesType = typeFilter === "all" || activity.type === typeFilter;
     
-    const matchesUser = userFilter === "all" || activity.user === userFilter;
+    const matchesUser = userFilter === "all" || activity.userId === userFilter;
     
     let matchesDate = true;
     if (date?.from && date?.to) {
-      const activityDate = parseISO(activity.timestamp);
+      const activityDate = new Date(activity.timestamp);
       matchesDate = isWithinInterval(activityDate, {
         start: startOfDay(date.from),
         end: endOfDay(date.to)
@@ -106,22 +105,22 @@ const UserActivityPage = () => {
   });
 
   // Format date for display
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+  const formatDate = (date: Date) => {
     return date.toLocaleString();
   };
 
   const downloadCSV = () => {
-    const headers = ["User", "Action", "Timestamp", "Details", "IP Address", "User Agent"];
+    const headers = ["User", "Type", "Description", "Timestamp", "IP Address", "User Agent"];
     
     const csvContent = [
       headers.join(","),
       ...filteredActivities.map(activity => {
+        const userName = users.find(u => u.id === activity.userId)?.name || activity.userId;
         return [
-          activity.user,
-          activity.action,
+          userName,
+          activity.type,
+          `"${activity.description}"`,
           formatDate(activity.timestamp),
-          `"${activity.details || ''}"`,
           activity.ipAddress || '',
           `"${activity.userAgent || ''}"`
         ].join(",");
@@ -142,19 +141,19 @@ const UserActivityPage = () => {
   };
 
   // Get activity type badge color
-  const getTypeColor = (type: string) => {
+  const getTypeColor = (type: ActivityType) => {
     switch (type) {
-      case "login":
+      case ActivityType.LOGIN:
         return "bg-green-500/10 text-green-500";
-      case "logout":
+      case ActivityType.LOGOUT:
         return "bg-blue-500/10 text-blue-500";
-      case "profile_update":
+      case ActivityType.PROFILE_UPDATE:
         return "bg-purple-500/10 text-purple-500";
-      case "alert_acknowledged":
+      case ActivityType.ALERT_ACKNOWLEDGE:
         return "bg-amber-500/10 text-amber-500";
-      case "alert_resolved":
+      case ActivityType.ALERT_RESOLVE:
         return "bg-cyan-500/10 text-cyan-500";
-      case "admin_action":
+      case ActivityType.SYSTEM_ACCESS:
         return "bg-red-500/10 text-red-500";
       default:
         return "bg-slate-500/10 text-slate-500";
@@ -238,15 +237,15 @@ const UserActivityPage = () => {
               <CardTitle className="text-sm font-medium">Filter by Type</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as ActivityType | "all")}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select activity type" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
-                  {Object.keys(activityTypes).map(type => (
+                  {Object.entries(activityTypes).map(([type, count]) => (
                     <SelectItem key={type} value={type}>
-                      {type} ({activityTypes[type]})
+                      {type} ({count})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -307,8 +306,8 @@ const UserActivityPage = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>User</TableHead>
-                    <TableHead>Action</TableHead>
                     <TableHead>Type</TableHead>
+                    <TableHead>Description</TableHead>
                     <TableHead>Timestamp</TableHead>
                     <TableHead>IP Address</TableHead>
                     <TableHead>Details</TableHead>
@@ -317,8 +316,7 @@ const UserActivityPage = () => {
                 <TableBody>
                   {filteredActivities.length > 0 ? (
                     filteredActivities.map((activity) => {
-                      // Find user name from id
-                      const userName = users.find(u => u.id === activity.user)?.name || activity.user;
+                      const userName = users.find(u => u.id === activity.userId)?.name || activity.userId;
                       
                       return (
                         <TableRow key={activity.id}>
@@ -328,14 +326,12 @@ const UserActivityPage = () => {
                               {userName}
                             </div>
                           </TableCell>
-                          <TableCell>{activity.action}</TableCell>
                           <TableCell>
-                            {activity.type && (
-                              <Badge className={getTypeColor(activity.type)}>
-                                {activity.type}
-                              </Badge>
-                            )}
+                            <Badge className={getTypeColor(activity.type)}>
+                              {activity.type}
+                            </Badge>
                           </TableCell>
+                          <TableCell>{activity.description}</TableCell>
                           <TableCell>
                             <div className="flex items-center">
                               <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
@@ -344,7 +340,7 @@ const UserActivityPage = () => {
                           </TableCell>
                           <TableCell>{activity.ipAddress || "N/A"}</TableCell>
                           <TableCell className="max-w-xs truncate">
-                            {activity.details || "No details"}
+                            {activity.metadata ? JSON.stringify(activity.metadata) : "No details"}
                           </TableCell>
                         </TableRow>
                       );

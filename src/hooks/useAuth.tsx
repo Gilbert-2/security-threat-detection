@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { User } from "@/services/userService";
 import { authService } from "@/services/authService";
@@ -34,38 +33,46 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        if (authService.isAuthenticated()) {
-          // If user is in localStorage, load from there
-          const storedUser = authService.getCurrentUser();
-          
-          if (storedUser) {
-            setUser(storedUser);
-          } else {
-            // If we have a token but no stored user, try to fetch profile
-            try {
-              const response = await fetch("http://localhost:7070/users/profile", {
-                headers: {
-                  Authorization: `Bearer ${authService.getAuthToken()}`
-                }
-              });
-              
-              if (response.ok) {
-                const userData = await response.json();
-                setUser(userData);
-                localStorage.setItem("currentUser", JSON.stringify(userData));
-              } else {
-                // Invalid token or other error
-                authService.logout();
-                toast({
-                  title: "Session Expired",
-                  description: "Please log in again.",
-                });
+        const token = authService.getAuthToken();
+        console.log('Auth Token:', token); // Debug log
+
+        if (token) {
+          // Always fetch fresh user data from the server
+          try {
+            console.log('Fetching user profile...'); // Debug log
+            const response = await fetch("http://localhost:7070/users/profile", {
+              headers: {
+                Authorization: `Bearer ${token}`
               }
-            } catch (error) {
-              console.error("Failed to fetch user profile:", error);
+            });
+            
+            if (response.ok) {
+              const userData = await response.json();
+              console.log('User data from server:', userData); // Debug log
+              
+              // Ensure role is properly set
+              if (!userData.role) {
+                console.error('User data missing role:', userData);
+                throw new Error('User data is incomplete');
+              }
+              
+              setUser(userData);
+              localStorage.setItem("currentUser", JSON.stringify(userData));
+            } else {
+              console.error('Profile fetch failed:', response.status); // Debug log
+              // Invalid token or other error
               authService.logout();
+              toast({
+                title: "Session Expired",
+                description: "Please log in again.",
+              });
             }
+          } catch (error) {
+            console.error("Failed to fetch user profile:", error);
+            authService.logout();
           }
+        } else {
+          console.log('No auth token found'); // Debug log
         }
       } catch (error) {
         console.error("Auth loading error:", error);
@@ -78,6 +85,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, [toast]);
 
   const logout = () => {
+    console.log('Logging out user:', user); // Debug log
     authService.logout();
     setUser(null);
     toast({

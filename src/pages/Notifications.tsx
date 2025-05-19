@@ -1,15 +1,15 @@
-
 import { Header } from "@/components/Header";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Bell, Check, Clock, Fingerprint, Shield, UserX } from "lucide-react";
+import { AlertCircle, Bell, Check, Clock, Fingerprint, Shield, UserX, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { notificationService } from "@/services/notificationService";
 
 interface Notification {
   id: string;
@@ -25,11 +25,13 @@ interface Notification {
 const NotificationItem = ({ 
   notification, 
   isSelected, 
-  onClick 
+  onClick,
+  onDelete 
 }: { 
   notification: Notification, 
   isSelected: boolean, 
-  onClick: () => void 
+  onClick: () => void,
+  onDelete: () => void 
 }) => {
   const iconMap = {
     security: <Shield className="text-security-blue h-5 w-5" />,
@@ -66,10 +68,23 @@ const NotificationItem = ({
             {notification.title}
             {!notification.read && <span className="ml-2 text-xs text-security-blue">New</span>}
           </h4>
-          <span className="text-xs text-muted-foreground flex items-center">
-            <Clock className="inline h-3 w-3 mr-1" />
-            {formatTime(notification.createdAt)}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground flex items-center">
+              <Clock className="inline h-3 w-3 mr-1" />
+              {formatTime(notification.createdAt)}
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 hover:bg-red-500/10 hover:text-red-500"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+            >
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          </div>
         </div>
         <p className="text-xs text-muted-foreground mt-1">{notification.description}</p>
       </div>
@@ -84,30 +99,24 @@ const Notifications = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("all");
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const isAdmin = user?.role === 'admin';
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/landing');
+      return;
+    }
     fetchNotifications();
-  }, []);
+  }, [isAuthenticated, navigate]);
 
   const fetchNotifications = async () => {
     try {
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        navigate('/landing');
-        return;
-      }
-
-      const response = await axios.get('http://localhost:7070/notifications', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-
-      setNotifications(response.data);
-      if (response.data.length > 0) {
-        setSelectedNotification(response.data[0]);
+      const notificationsData = await notificationService.getNotifications();
+      setNotifications(notificationsData);
+      if (notificationsData.length > 0) {
+        setSelectedNotification(notificationsData[0]);
       }
     } catch (err) {
       setError('Failed to fetch notifications');
@@ -175,13 +184,52 @@ const Notifications = () => {
     }
   };
 
-  const filteredNotifications = notifications.filter(notification => {
+  const deleteNotification = async (id: string) => {
+    try {
+      await notificationService.deleteNotification(id);
+      
+      // Update local state after successful deletion
+      setNotifications(prev => prev.filter(n => n.id !== id));
+      if (selectedNotification?.id === id) {
+        setSelectedNotification(null);
+      }
+      
+      toast({
+        title: "Success",
+        description: "Notification deleted successfully",
+      });
+    } catch (err: any) {
+      console.error('Error deleting notification:', err);
+      
+      // If the notification is not found, remove it from local state anyway
+      if (err.message?.includes('not found')) {
+        setNotifications(prev => prev.filter(n => n.id !== id));
+        if (selectedNotification?.id === id) {
+          setSelectedNotification(null);
+        }
+        toast({
+          title: "Success",
+          description: "Notification removed",
+        });
+        return;
+      }
+      
+      toast({
+        title: "Error",
+        description: err.message || "Failed to delete notification",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const filteredNotifications = notifications?.filter(notification => {
+    if (!notification) return false;
     if (activeTab === "all") return true;
     if (activeTab === "unread") return !notification.read;
     return notification.type === activeTab;
-  });
+  }) || [];
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications?.filter(n => n && !n.read).length || 0;
 
   if (loading) {
     return (
@@ -213,18 +261,20 @@ const Notifications = () => {
           <div>
             <h2 className="text-2xl font-bold">Notifications</h2>
             <p className="text-muted-foreground">
-              {unreadCount} unread {unreadCount === 1 ? 'notification' : 'notifications'}
+              {isAdmin ? 'All System Notifications' : 'Your Notifications'} • {unreadCount} unread {unreadCount === 1 ? 'notification' : 'notifications'}
             </p>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="gap-2"
-            onClick={markAllAsRead}
-          >
-            <Check className="h-4 w-4" />
-            Mark all as read
-          </Button>
+          {notifications.length > 0 && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-2"
+              onClick={markAllAsRead}
+            >
+              <Check className="h-4 w-4" />
+              Mark all as read
+            </Button>
+          )}
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -235,7 +285,7 @@ const Notifications = () => {
                 <Tabs defaultValue="all" className="w-full" value={activeTab} onValueChange={setActiveTab}>
                   <TabsList className="grid grid-cols-4 w-full">
                     <TabsTrigger value="all">
-                      All <Badge className="ml-1">{notifications.length}</Badge>
+                      All <Badge className="ml-1">{notifications?.length || 0}</Badge>
                     </TabsTrigger>
                     <TabsTrigger value="unread">
                       Unread <Badge className="ml-1">{unreadCount}</Badge>
@@ -253,6 +303,7 @@ const Notifications = () => {
                       notification={notification}
                       isSelected={selectedNotification?.id === notification.id}
                       onClick={() => handleSelect(notification)}
+                      onDelete={() => deleteNotification(notification.id)}
                     />
                   ))
                 ) : (
@@ -290,9 +341,19 @@ const Notifications = () => {
                     {selectedNotification.details}
                   </pre>
                   
+                  {isAdmin && (
+                    <div className="mt-4 p-3 bg-slate-800/50 rounded-lg">
+                      <p className="text-sm text-muted-foreground">
+                        Recipient ID: {selectedNotification.userId}
+                      </p>
+                    </div>
+                  )}
+                  
                   <div className="mt-6 flex gap-2">
                     <Button variant="default" size="sm">Acknowledge</Button>
-                    <Button variant="outline" size="sm">Forward</Button>
+                    {isAdmin && (
+                      <Button variant="outline" size="sm">Forward</Button>
+                    )}
                     <Button variant="secondary" size="sm">View Related</Button>
                   </div>
                 </CardContent>

@@ -1,4 +1,3 @@
-
 import { User } from "./userService";
 import { toast } from "@/hooks/use-toast";
 
@@ -23,6 +22,8 @@ const API_URL = "http://localhost:7070";
 
 export const authService = {
   login: async (credentials: LoginRequest): Promise<User> => {
+    console.log('authService.login called with credentials:', { email: credentials.email }); // Debug log
+    
     try {
       const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
@@ -32,25 +33,34 @@ export const authService = {
         body: JSON.stringify(credentials),
       });
 
+      console.log('Login response status:', response.status); // Debug log
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Login failed");
+        const error = await response.json();
+        console.error('Login error response:', error); // Debug log
+        throw new Error(error.message || "Login failed");
       }
 
       const data = await response.json();
-      
-      // Store JWT token
-      if (data.access_token) {
-        localStorage.setItem("authToken", data.access_token);
+      console.log('Login response data:', { 
+        token: data.access_token ? 'present' : 'missing',
+        user: data.user 
+      }); // Debug log
+
+      if (!data.access_token) {
+        console.error('No token received in login response'); // Debug log
+        throw new Error("Authentication failed - no token received");
       }
+
+      // Store JWT token
+      localStorage.setItem("authToken", data.access_token);
+      console.log('Auth token stored in localStorage'); // Debug log
       
       // Store user data
-      if (data.user) {
-        localStorage.setItem("currentUser", JSON.stringify(data.user));
-        return data.user;
-      }
-      
-      throw new Error("Invalid response format from server");
+      localStorage.setItem("currentUser", JSON.stringify(data.user));
+      console.log('User data stored in localStorage:', data.user); // Debug log
+
+      return data.user;
     } catch (error: any) {
       toast({
         title: "Login Failed",
@@ -117,8 +127,10 @@ export const authService = {
   },
 
   logout: (): void => {
+    console.log('Logging out user...'); // Debug log
     localStorage.removeItem("authToken");
     localStorage.removeItem("currentUser");
+    console.log('Auth token and user data removed from localStorage'); // Debug log
   },
 
   getCurrentUser: (): User | null => {
@@ -134,7 +146,9 @@ export const authService = {
   },
 
   getAuthToken: (): string | null => {
-    return localStorage.getItem("authToken");
+    const token = localStorage.getItem('authToken');
+    console.log('Getting auth token:', token ? 'present' : 'missing'); // Debug log
+    return token;
   },
 
   isAuthenticated: (): boolean => {

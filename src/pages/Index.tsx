@@ -1,4 +1,3 @@
-
 import { Header } from "@/components/Header";
 import { AlertsSummary } from "@/components/AlertsSummary";
 import { VideoFeed } from "@/components/VideoFeed";
@@ -7,21 +6,29 @@ import { ResponseRulesSummary } from "@/components/ResponseRulesSummary";
 import { UserActivityLog } from "@/components/UserActivityLog";
 import { AnalyticsChart } from "@/components/AnalyticsChart";
 import { useEffect, useState } from "react";
-import { userService } from "@/services";
+import { userService, ActivityType } from "@/services/userService";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   
   // Log user activity when dashboard is loaded
   useEffect(() => {
     const logDashboardActivity = async () => {
+      if (!user?.id) {
+        console.error("No user ID available for activity logging");
+        return;
+      }
+
       try {
         setLoading(true);
         await userService.logUserActivity({
-          user: "Current User", // This would come from auth context in a real app
-          action: "Accessed security dashboard"
+          userId: user.id,
+          type: ActivityType.SYSTEM_ACCESS,
+          description: "Accessed security dashboard"
         });
         setLoading(false);
       } catch (error) {
@@ -36,7 +43,7 @@ const Index = () => {
     };
     
     logDashboardActivity();
-  }, [toast]);
+  }, [toast, user]);
 
   return (
     <div className="flex flex-col h-full">

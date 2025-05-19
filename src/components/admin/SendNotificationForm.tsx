@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,26 +30,27 @@ export const SendNotificationForm = ({ onSuccess }: SendNotificationFormProps) =
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        setLoadingUsers(true);
-        const usersData = await userService.getUsers();
-        setUsers(usersData.map(user => ({
-          id: user.id || "",
-          name: `${user.firstName} ${user.lastName} (${user.email})`
-        })));
+        const users = await userService.getUsers();
+        setUsers(users);
+        if (users.length === 0) {
+          toast({
+            title: "Access Denied",
+            description: "You don't have permission to view the users list.",
+            variant: "destructive",
+          });
+        }
       } catch (error) {
         console.error("Error fetching users:", error);
         toast({
           title: "Error",
-          description: "Failed to fetch users list",
-          variant: "destructive"
+          description: "Failed to fetch users. Please try again.",
+          variant: "destructive",
         });
-      } finally {
-        setLoadingUsers(false);
       }
     };
 
     fetchUsers();
-  }, []);
+  }, [toast]);
 
   const handleSendNotification = async () => {
     if (!title || !description) {
@@ -128,127 +128,137 @@ export const SendNotificationForm = ({ onSuccess }: SendNotificationFormProps) =
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <div className="flex space-x-2">
-            <Button
-              variant={sendMode === "bulk" ? "default" : "outline"}
-              size="sm"
-              className="flex-1"
-              onClick={() => setSendMode("bulk")}
-            >
-              <Users className="h-4 w-4 mr-2" />
-              Multiple Users
-            </Button>
-            <Button
-              variant={sendMode === "single" ? "default" : "outline"}
-              size="sm"
-              className="flex-1"
-              onClick={() => setSendMode("single")}
-            >
-              <UserCheck className="h-4 w-4 mr-2" />
-              Single User
-            </Button>
-          </div>
-        </div>
-
-        {sendMode === "single" ? (
-          <div className="space-y-1">
-            <label className="text-sm font-medium">Select User</label>
-            <Select value={selectedUser} onValueChange={setSelectedUser}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a user" />
-              </SelectTrigger>
-              <SelectContent>
-                {loadingUsers ? (
-                  <div className="flex justify-center p-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  </div>
-                ) : (
-                  users.map(user => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {user.name}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
+        {users.length === 0 ? (
+          <div className="text-center p-4 bg-muted rounded-lg">
+            <p className="text-muted-foreground">
+              Only administrators can send notifications to users.
+            </p>
           </div>
         ) : (
-          <div className="space-y-1">
-            <label className="text-sm font-medium">Select Users (leave empty for all)</label>
-            <Select>
-              <SelectTrigger>
-                <SelectValue placeholder={selectedUserIds.length ? `${selectedUserIds.length} users selected` : "All users"} />
-              </SelectTrigger>
-              <SelectContent>
-                <div className="p-2">
-                  <p className="text-xs text-muted-foreground mb-2">
-                    This feature will be implemented in a future update
-                  </p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="w-full"
-                    onClick={() => setSelectedUserIds([])}
-                  >
-                    Select All Users
-                  </Button>
-                </div>
-              </SelectContent>
-            </Select>
-          </div>
+          <>
+            <div className="space-y-2">
+              <div className="flex space-x-2">
+                <Button
+                  variant={sendMode === "bulk" ? "default" : "outline"}
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setSendMode("bulk")}
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  Multiple Users
+                </Button>
+                <Button
+                  variant={sendMode === "single" ? "default" : "outline"}
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setSendMode("single")}
+                >
+                  <UserCheck className="h-4 w-4 mr-2" />
+                  Single User
+                </Button>
+              </div>
+            </div>
+
+            {sendMode === "single" ? (
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Select User</label>
+                <Select value={selectedUser} onValueChange={setSelectedUser}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a user" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {loadingUsers ? (
+                      <div className="flex justify-center p-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      </div>
+                    ) : (
+                      users.map(user => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Select Users (leave empty for all)</label>
+                <Select>
+                  <SelectTrigger>
+                    <SelectValue placeholder={selectedUserIds.length ? `${selectedUserIds.length} users selected` : "All users"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <div className="p-2">
+                      <p className="text-xs text-muted-foreground mb-2">
+                        This feature will be implemented in a future update
+                      </p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full"
+                        onClick={() => setSelectedUserIds([])}
+                      >
+                        Select All Users
+                      </Button>
+                    </div>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Notification Type</label>
+              <Select value={type} onValueChange={setType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select notification type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="system">System</SelectItem>
+                  <SelectItem value="security">Security</SelectItem>
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="hardware">Hardware</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Title*</label>
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Notification title"
+                required
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Description*</label>
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Short description of the notification"
+                required
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Details (Optional)</label>
+              <Textarea
+                value={details}
+                onChange={(e) => setDetails(e.target.value)}
+                placeholder="Additional details or information"
+                rows={4}
+              />
+            </div>
+          </>
         )}
-
-        <div className="space-y-1">
-          <label className="text-sm font-medium">Notification Type</label>
-          <Select value={type} onValueChange={setType}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select notification type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="system">System</SelectItem>
-              <SelectItem value="security">Security</SelectItem>
-              <SelectItem value="user">User</SelectItem>
-              <SelectItem value="hardware">Hardware</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-1">
-          <label className="text-sm font-medium">Title*</label>
-          <Input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Notification title"
-            required
-          />
-        </div>
-
-        <div className="space-y-1">
-          <label className="text-sm font-medium">Description*</label>
-          <Textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Short description of the notification"
-            required
-          />
-        </div>
-
-        <div className="space-y-1">
-          <label className="text-sm font-medium">Details (Optional)</label>
-          <Textarea
-            value={details}
-            onChange={(e) => setDetails(e.target.value)}
-            placeholder="Additional details or information"
-            rows={4}
-          />
-        </div>
       </CardContent>
       <CardFooter>
         <Button 
           className="w-full" 
           onClick={handleSendNotification}
-          disabled={isLoading}
+          disabled={isLoading || users.length === 0}
         >
           {isLoading ? (
             <>

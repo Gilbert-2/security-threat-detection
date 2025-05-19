@@ -1,6 +1,4 @@
-
 import api from "./api";
-import { userActivities } from "@/data/mockData";
 
 export interface User {
   id?: string;
@@ -14,16 +12,36 @@ export interface User {
   phoneNumber?: string;
 }
 
+export enum ActivityType {
+  LOGIN = 'login',
+  LOGOUT = 'logout',
+  PROFILE_UPDATE = 'profile_update',
+  PASSWORD_CHANGE = 'password_change',
+  ALERT_VIEW = 'alert_view',
+  ALERT_ACKNOWLEDGE = 'alert_acknowledge',
+  ALERT_RESOLVE = 'alert_resolve',
+  SYSTEM_ACCESS = 'system_access',
+  DATA_ACCESS = 'data_access',
+  SETTINGS_CHANGE = 'settings_change'
+}
+
 export interface UserActivity {
   id: string;
-  user: string;
-  action: string;
-  timestamp: string;
-  details?: string;
-  alertId?: string;
+  userId: string;
+  type: ActivityType;
+  description: string;
+  metadata?: Record<string, any>;
   ipAddress?: string;
   userAgent?: string;
-  type?: string;
+  timestamp: Date;
+}
+
+export interface LogUserActivityPayload {
+  type: ActivityType;
+  description: string;
+  metadata?: Record<string, any>;
+  ipAddress?: string;
+  userAgent?: string;
 }
 
 export const userService = {
@@ -31,6 +49,20 @@ export const userService = {
   getUsers: async (): Promise<User[]> => {
     try {
       const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
+      // Get current user from localStorage
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      console.log('Current user:', currentUser); // Debug log
+
+      // Check if user is admin
+      if (currentUser.role !== 'admin') {
+        console.warn('Non-admin user attempted to access users list');
+        return [];
+      }
+
       const response = await fetch('http://localhost:7070/users', {
         headers: {
           Authorization: `Bearer ${token}`
@@ -38,13 +70,17 @@ export const userService = {
       });
       
       if (!response.ok) {
+        if (response.status === 403) {
+          console.warn('User does not have permission to access users list');
+          return [];
+        }
         throw new Error('Failed to fetch users');
       }
       
       return await response.json();
     } catch (error) {
       console.error("Error fetching users:", error);
-      throw error;
+      return []; // Return empty array instead of throwing to prevent UI breakage
     }
   },
 
@@ -134,7 +170,7 @@ export const userService = {
     }
   },
 
-  // Get user activities
+  // Get user activities (admin only)
   getUserActivities: async (limit: number = 10): Promise<UserActivity[]> => {
     try {
       const token = localStorage.getItem('authToken');
@@ -145,38 +181,59 @@ export const userService = {
       });
       
       if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error('Only administrators can view all user activities');
+        }
         throw new Error('Failed to fetch user activities');
       }
       
       return await response.json();
     } catch (error) {
       console.error("Error fetching user activities:", error);
-      return userActivities.slice(0, limit); // Fallback to mock data
+      throw error;
     }
   },
   
-  // Get user-specific activity
+  // Get specific user's activity
   getUserSpecificActivity: async (userId: string): Promise<UserActivity[]> => {
     try {
       const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
+      // Get current user from localStorage
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      
+      // Check if user is trying to access their own activities or is an admin
+      if (currentUser.id !== userId && currentUser.role !== 'admin') {
+        console.warn('User attempted to access activities of another user');
+        return []; // Return empty array instead of throwing error
+      }
+
       const response = await fetch(`http://localhost:7070/user-activity/user/${userId}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
       });
-      
+
       if (!response.ok) {
-        throw new Error('Failed to fetch user specific activities');
+        if (response.status === 404) {
+          console.warn(`No activities found for user ${userId}`);
+          return [];
+        }
+        throw new Error(`Failed to fetch activities: ${response.statusText}`);
       }
-      
-      return await response.json();
+
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
     } catch (error) {
       console.error(`Error fetching activities for user ${userId}:`, error);
-      throw error;
+      return []; // Return empty array instead of throwing to prevent UI breakage
     }
   },
   
-  // Get activity summary
+  // Get activity summary (admin only)
   getActivitySummary: async (): Promise<Record<string, any>> => {
     try {
       const token = localStorage.getItem('authToken');
@@ -187,6 +244,9 @@ export const userService = {
       });
       
       if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error('Only administrators can view activity summary');
+        }
         throw new Error('Failed to fetch activity summary');
       }
       
@@ -197,8 +257,8 @@ export const userService = {
     }
   },
   
-  // Get activity type statistics
-  getActivityTypeStats: async (): Promise<Record<string, number>> => {
+  // Get activity type statistics (admin only)
+  getActivityTypeStats: async (): Promise<Record<ActivityType, number>> => {
     try {
       const token = localStorage.getItem('authToken');
       const response = await fetch('http://localhost:7070/user-activity/types', {
@@ -208,6 +268,9 @@ export const userService = {
       });
       
       if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error('Only administrators can view activity type statistics');
+        }
         throw new Error('Failed to fetch activity type statistics');
       }
       
@@ -219,7 +282,7 @@ export const userService = {
   },
 
   // Log user activity (for client-side actions)
-  logUserActivity: async (activity: Omit<UserActivity, "id" | "timestamp">): Promise<UserActivity> => {
+  logUserActivity: async (activity: LogUserActivityPayload): Promise<UserActivity> => {
     try {
       const token = localStorage.getItem('authToken');
       const response = await fetch('http://localhost:7070/user-activity', {
@@ -232,19 +295,14 @@ export const userService = {
       });
       
       if (!response.ok) {
-        throw new Error('Failed to log user activity');
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.message || 'Failed to log user activity');
       }
       
       return await response.json();
     } catch (error) {
       console.error("Error logging user activity:", error);
-      
-      // Fallback to mock response
-      return {
-        ...activity,
-        id: `activity-${Date.now()}`,
-        timestamp: new Date().toISOString()
-      };
+      throw error;
     }
   }
 };

@@ -1,4 +1,3 @@
-
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,68 +7,109 @@ import { useState, useEffect } from "react";
 import { Search, Calendar, Clock, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { userService, UserActivity } from "@/services/userService";
-import { authService } from "@/services/authService";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 
 const History = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [actionFilter, setActionFilter] = useState("all");
-  const [userActivities, setUserActivities] = useState<UserActivity[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [activities, setActivities] = useState<UserActivity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("all");
+  const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
-  
-  // Get current user
-  const currentUser = authService.getCurrentUser();
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/landing');
+      return;
+    }
     fetchUserActivities();
-  }, []);
+  }, [isAuthenticated, navigate]);
 
   const fetchUserActivities = async () => {
     try {
-      setIsLoading(true);
-      let activities: UserActivity[];
+      setLoading(true);
+      setError(null);
       
-      if (currentUser?.id) {
-        // Get activities for the current user
-        activities = await userService.getUserSpecificActivity(currentUser.id);
-      } else {
-        // Fallback to getting generic activities if no user ID
-        activities = await userService.getUserActivities(20);
+      if (!user?.id) {
+        throw new Error('User ID not found');
       }
-      
-      setUserActivities(activities);
-    } catch (error) {
-      console.error("Failed to fetch user activities:", error);
+
+      const activitiesData = await userService.getUserSpecificActivity(user.id);
+      setActivities(activitiesData);
+
+      if (activitiesData.length === 0) {
+        toast({
+          title: "No Activities",
+          description: "No activity history found for this user.",
+          variant: "default",
+        });
+      }
+    } catch (err: any) {
+      console.error('Failed to fetch user activities:', err);
+      setError(err.message || 'Failed to fetch activities');
       toast({
         title: "Error",
-        description: "Failed to load activity history",
-        variant: "destructive"
+        description: err.message || "Failed to fetch activities. Please try again.",
+        variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const uniqueActions = ["all", ...new Set(userActivities.map(item => item.action))];
+  const filteredActivities = activities?.filter(activity => {
+    try {
+      if (!activity) return false;
+      if (activeTab === "all") return true;
+      return activity.type?.toLowerCase() === activeTab.toLowerCase();
+    } catch (err) {
+      console.error('Error filtering activity:', err);
+      return false;
+    }
+  }) || [];
 
-  const filteredData = userActivities.filter(item => {
-    const matchesSearch = 
-      item.action.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      (item.details || "").toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesAction = actionFilter === "all" || item.action === actionFilter;
-    
-    return matchesSearch && matchesAction;
-  });
-
-  const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return {
-      date: date.toLocaleDateString(),
-      time: date.toLocaleTimeString()
-    };
+  const formatTimestamp = (timestamp: string | Date) => {
+    try {
+      const date = new Date(timestamp);
+      return {
+        date: date.toLocaleDateString(),
+        time: date.toLocaleTimeString()
+      };
+    } catch (err) {
+      console.error('Error formatting timestamp:', err);
+      return {
+        date: "Invalid Date",
+        time: "Invalid Time"
+      };
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col h-full">
+        <Header />
+        <div className="p-4 flex-1 flex items-center justify-center">
+          <p>Loading activity history...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col h-full">
+        <Header />
+        <div className="p-4 flex-1 flex items-center justify-center">
+          <p className="text-red-500">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -79,98 +119,58 @@ const History = () => {
           <div>
             <h2 className="text-2xl font-bold">Activity History</h2>
             <p className="text-muted-foreground">
-              {currentUser 
-                ? `Activity log for ${currentUser.firstName} ${currentUser.lastName}`
-                : "All system activities and events"}
+              {user?.role === 'admin' ? 'All User Activities' : 'Your Activity History'} • {activities.length} total activities
             </p>
           </div>
         </div>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Activity Log</CardTitle>
-            <CardDescription>Track system and user activities</CardDescription>
-            <div className="flex flex-col sm:flex-row gap-3 mt-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search activities..."
-                  className="pl-8"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              <Select value={actionFilter} onValueChange={setActionFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Filter by action" />
-                </SelectTrigger>
-                <SelectContent>
-                  {uniqueActions.map(action => (
-                    <SelectItem key={action} value={action}>
-                      {action === "all" ? "All Actions" : action}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[200px]">Action</TableHead>
-                    <TableHead className="w-[180px]">Timestamp</TableHead>
-                    <TableHead>Details</TableHead>
-                    {!currentUser && <TableHead>User</TableHead>}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={currentUser ? 3 : 4} className="h-24 text-center">
-                        Loading activity history...
-                      </TableCell>
-                    </TableRow>
-                  ) : filteredData.length > 0 ? (
-                    filteredData.map((item) => {
-                      const formattedTime = formatTimestamp(item.timestamp);
-                      return (
-                        <TableRow key={item.id}>
-                          <TableCell className="font-medium">{item.action}</TableCell>
-                          <TableCell className="text-nowrap">
-                            <div className="flex items-center gap-1 text-muted-foreground">
-                              <Calendar className="h-3.5 w-3.5" />
-                              <span>{formattedTime.date}</span>
-                              <Clock className="h-3.5 w-3.5 ml-2" />
-                              <span>{formattedTime.time}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>{item.details || "-"}</TableCell>
-                          {!currentUser && <TableCell>{item.user}</TableCell>}
-                        </TableRow>
-                      );
-                    })
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={currentUser ? 3 : 4} className="h-24 text-center">
-                        No results found.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-            <div className="flex items-center justify-end space-x-2 py-4">
-              <Button variant="outline" size="sm" disabled>
-                Previous
-              </Button>
-              <Button variant="outline" size="sm" disabled>
-                Next
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Activity Feed</CardTitle>
+                <Tabs defaultValue="all" className="w-full" value={activeTab} onValueChange={setActiveTab}>
+                  <TabsList className="grid grid-cols-4 w-full">
+                    <TabsTrigger value="all">
+                      All <Badge className="ml-1">{activities?.length || 0}</Badge>
+                    </TabsTrigger>
+                    <TabsTrigger value="login">Login</TabsTrigger>
+                    <TabsTrigger value="security">Security</TabsTrigger>
+                    <TabsTrigger value="system">System</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </CardHeader>
+              <CardContent className="p-0 max-h-[600px] overflow-auto">
+                {filteredActivities.length > 0 ? (
+                  filteredActivities.map(activity => {
+                    const { date, time } = formatTimestamp(activity.timestamp);
+                    return (
+                      <div 
+                        key={activity.id}
+                        className="p-3 border-b last:border-0 hover:bg-slate-800/50"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-medium text-sm">{activity.type}</h4>
+                            <p className="text-xs text-muted-foreground mt-1">{activity.description}</p>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            <div>{date}</div>
+                            <div>{time}</div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="p-6 text-center text-muted-foreground">
+                    No activities found
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

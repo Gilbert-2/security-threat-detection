@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Header } from "@/components/Header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -305,13 +304,13 @@ const Profile = () => {
                             </div>
                             <div className="flex-1">
                               <div className="flex justify-between">
-                                <p className="font-medium text-sm">{activity.action}</p>
+                                <p className="font-medium text-sm">{activity.type}</p>
                                 <span className="text-xs text-muted-foreground">
-                                  {formatActivityDate(activity.timestamp)}
+                                  {formatActivityDate(activity.timestamp.toString())}
                                 </span>
                               </div>
-                              {activity.details && (
-                                <p className="text-xs text-muted-foreground mt-1">{activity.details}</p>
+                              {activity.description && (
+                                <p className="text-xs text-muted-foreground mt-1">{activity.description}</p>
                               )}
                               {activity.ipAddress && (
                                 <p className="text-xs mt-1">IP: {activity.ipAddress}</p>
