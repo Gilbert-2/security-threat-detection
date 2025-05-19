@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -28,7 +28,7 @@ export const SendNotificationForm = ({ onSuccess }: SendNotificationFormProps) =
   const { toast } = useToast();
 
   // Fetch users when component mounts
-  useState(() => {
+  useEffect(() => {
     const fetchUsers = async () => {
       try {
         setLoadingUsers(true);

@@ -14,6 +14,10 @@ export interface ResponseRule {
   createdAt: string;
   updatedAt: string;
   createdBy: string;
+  status?: 'Active' | 'Inactive';
+  lastTriggered?: string;
+  conditions?: any[]; // Added for backward compatibility
+  actions?: any[]; // Added for backward compatibility
 }
 
 export interface ResponseRuleStats {
@@ -77,13 +81,26 @@ export const responseRuleService = {
   createResponseRule: async (rule: Omit<ResponseRule, 'id' | 'createdAt' | 'updatedAt'>): Promise<ResponseRule> => {
     try {
       const token = localStorage.getItem('authToken');
+      
+      // Convert from the UI model to the API model if needed
+      const apiRule = {
+        name: rule.name,
+        description: rule.description,
+        condition: rule.condition || (rule.conditions && JSON.stringify(rule.conditions)) || '',
+        action: rule.action || (rule.actions && JSON.stringify(rule.actions)) || '',
+        severity: rule.severity,
+        active: rule.active || (rule.status === 'Active'),
+        requiresApproval: rule.requiresApproval,
+        createdBy: rule.createdBy || localStorage.getItem('userId') || 'admin'
+      };
+      
       const response = await fetch('http://localhost:7070/response-rules', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(rule)
+        body: JSON.stringify(apiRule)
       });
       
       if (!response.ok) {
@@ -101,13 +118,35 @@ export const responseRuleService = {
   updateResponseRule: async (id: string, rule: Partial<ResponseRule>): Promise<ResponseRule> => {
     try {
       const token = localStorage.getItem('authToken');
+      
+      // Convert from the UI model to the API model if needed
+      const apiRule: Partial<ResponseRule> = {
+        ...rule
+      };
+      
+      // Handle special conversions
+      if (rule.conditions && !rule.condition) {
+        apiRule.condition = JSON.stringify(rule.conditions);
+        delete apiRule.conditions;
+      }
+      
+      if (rule.actions && !rule.action) {
+        apiRule.action = JSON.stringify(rule.actions);
+        delete apiRule.actions;
+      }
+      
+      if (rule.status !== undefined) {
+        apiRule.active = rule.status === 'Active';
+        delete apiRule.status;
+      }
+      
       const response = await fetch(`http://localhost:7070/response-rules/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(rule)
+        body: JSON.stringify(apiRule)
       });
       
       if (!response.ok) {
