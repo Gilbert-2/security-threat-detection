@@ -71,10 +71,12 @@ const ResponseRules = () => {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    severity: "MEDIUM",
+    severity: "medium" as "low" | "medium" | "high" | "critical",
     requiresApproval: false,
-    conditions: [],
-    actions: []
+    condition: "",
+    action: "",
+    active: true,
+    createdBy: ""
   });
   
   const { toast } = useToast();
@@ -104,14 +106,18 @@ const ResponseRules = () => {
 
   const handleCreateRule = async () => {
     try {
-      // Add default conditions and actions if none provided
-      const ruleData = {
-        ...formData,
-        conditions: formData.conditions.length ? formData.conditions : [{ type: "motion", value: "detected" }],
-        actions: formData.actions.length ? formData.actions : [{ type: "notify", target: "security-team" }],
-        status: "Active" as const
+      // Convert to the expected format for creating a rule
+      const ruleData: Omit<ResponseRule, 'id' | 'createdAt' | 'updatedAt'> = {
+        name: formData.name,
+        description: formData.description,
+        severity: formData.severity,
+        requiresApproval: formData.requiresApproval,
+        condition: formData.condition,
+        action: formData.action,
+        active: true,
+        createdBy: localStorage.getItem('userId') || 'admin'
       };
-      
+
       await responseRuleService.createResponseRule(ruleData);
       toast({ title: "Success", description: "Response rule created successfully" });
       setCreateDialogOpen(false);
@@ -130,7 +136,18 @@ const ResponseRules = () => {
     if (!selectedRule) return;
     
     try {
-      await responseRuleService.updateResponseRule(selectedRule.id, formData);
+      // Convert to the expected type format for updating a rule
+      const ruleData: Partial<ResponseRule> = {
+        name: formData.name,
+        description: formData.description,
+        severity: formData.severity,
+        requiresApproval: formData.requiresApproval,
+        condition: formData.condition,
+        action: formData.action,
+        active: formData.active
+      };
+
+      await responseRuleService.updateResponseRule(selectedRule.id, ruleData);
       toast({ title: "Success", description: "Response rule updated successfully" });
       setEditDialogOpen(false);
       fetchRules();
@@ -162,7 +179,7 @@ const ResponseRules = () => {
 
   const handleToggleStatus = async (rule: ResponseRule) => {
     try {
-      if (rule.status === "Active") {
+      if (rule.active) {
         await responseRuleService.deactivateRule(rule.id);
         toast({ title: "Success", description: "Rule deactivated successfully" });
       } else {
@@ -173,7 +190,7 @@ const ResponseRules = () => {
     } catch (err) {
       toast({ 
         title: "Error", 
-        description: `Failed to ${rule.status === "Active" ? "deactivate" : "activate"} rule`, 
+        description: `Failed to ${rule.active ? "deactivate" : "activate"} rule`, 
         variant: "destructive" 
       });
     }
@@ -183,10 +200,12 @@ const ResponseRules = () => {
     setFormData({
       name: "",
       description: "",
-      severity: "MEDIUM",
+      severity: "medium",
       requiresApproval: false,
-      conditions: [],
-      actions: []
+      condition: "",
+      action: "",
+      active: true,
+      createdBy: ""
     });
   };
 
@@ -197,8 +216,10 @@ const ResponseRules = () => {
       description: rule.description,
       severity: rule.severity,
       requiresApproval: rule.requiresApproval,
-      conditions: [...rule.conditions],
-      actions: [...rule.actions]
+      condition: rule.condition,
+      action: rule.action,
+      active: rule.active,
+      createdBy: rule.createdBy
     });
     setEditDialogOpen(true);
   };
@@ -215,8 +236,8 @@ const ResponseRules = () => {
   );
 
   // Get status badge color
-  const getStatusColor = (status: string) => {
-    return status === "Active"
+  const getStatusColor = (isActive: boolean) => {
+    return isActive
       ? "bg-green-500/10 text-green-500 hover:bg-green-500/20"
       : "bg-red-500/10 text-red-500 hover:bg-red-500/20";
   };
@@ -224,13 +245,13 @@ const ResponseRules = () => {
   // Get severity badge color
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case "CRITICAL":
+      case "critical":
         return "bg-red-500/10 text-red-500";
-      case "HIGH":
+      case "high":
         return "bg-orange-500/10 text-orange-500";
-      case "MEDIUM":
+      case "medium":
         return "bg-amber-500/10 text-amber-500";
-      case "LOW":
+      case "low":
         return "bg-blue-500/10 text-blue-500";
       default:
         return "bg-slate-500/10 text-slate-500";
@@ -316,8 +337,8 @@ const ResponseRules = () => {
                           <Badge className={getSeverityColor(rule.severity)}>{rule.severity}</Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge className={getStatusColor(rule.status)}>
-                            {rule.status}
+                          <Badge className={getStatusColor(rule.active)}>
+                            {rule.active ? "Active" : "Inactive"}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -328,9 +349,9 @@ const ResponseRules = () => {
                             variant="ghost"
                             size="icon"
                             onClick={() => handleToggleStatus(rule)}
-                            title={rule.status === "Active" ? "Deactivate Rule" : "Activate Rule"}
+                            title={rule.active ? "Deactivate Rule" : "Activate Rule"}
                           >
-                            {rule.status === "Active" ? (
+                            {rule.active ? (
                               <PowerOff className="h-4 w-4" />
                             ) : (
                               <Power className="h-4 w-4" />
@@ -403,18 +424,37 @@ const ResponseRules = () => {
                 <Label htmlFor="severity">Severity</Label>
                 <Select
                   value={formData.severity}
-                  onValueChange={(value) => setFormData({ ...formData, severity: value })}
+                  onValueChange={(value: "low" | "medium" | "high" | "critical") => 
+                    setFormData({ ...formData, severity: value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select severity" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="CRITICAL">Critical</SelectItem>
-                    <SelectItem value="HIGH">High</SelectItem>
-                    <SelectItem value="MEDIUM">Medium</SelectItem>
-                    <SelectItem value="LOW">Low</SelectItem>
+                    <SelectItem value="critical">Critical</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="low">Low</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="condition">Condition</Label>
+                <Input
+                  id="condition"
+                  value={formData.condition}
+                  onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
+                  placeholder="e.g., motion detected in zone 1"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="action">Action</Label>
+                <Input
+                  id="action"
+                  value={formData.action}
+                  onChange={(e) => setFormData({ ...formData, action: e.target.value })}
+                  placeholder="e.g., notify security team"
+                />
               </div>
               <div className="flex items-center space-x-2">
                 <Input
@@ -463,18 +503,37 @@ const ResponseRules = () => {
                 <Label htmlFor="edit-severity">Severity</Label>
                 <Select
                   value={formData.severity}
-                  onValueChange={(value) => setFormData({ ...formData, severity: value })}
+                  onValueChange={(value: "low" | "medium" | "high" | "critical") => 
+                    setFormData({ ...formData, severity: value })}
                 >
                   <SelectTrigger id="edit-severity">
                     <SelectValue placeholder="Select severity" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="CRITICAL">Critical</SelectItem>
-                    <SelectItem value="HIGH">High</SelectItem>
-                    <SelectItem value="MEDIUM">Medium</SelectItem>
-                    <SelectItem value="LOW">Low</SelectItem>
+                    <SelectItem value="critical">Critical</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="low">Low</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-condition">Condition</Label>
+                <Input
+                  id="edit-condition"
+                  value={formData.condition}
+                  onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
+                  placeholder="e.g., motion detected in zone 1"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-action">Action</Label>
+                <Input
+                  id="edit-action"
+                  value={formData.action}
+                  onChange={(e) => setFormData({ ...formData, action: e.target.value })}
+                  placeholder="e.g., notify security team"
+                />
               </div>
               <div className="flex items-center space-x-2">
                 <Input

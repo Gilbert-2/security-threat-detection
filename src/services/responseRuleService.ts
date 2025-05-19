@@ -1,4 +1,3 @@
-
 import api from "./api";
 
 // Types
@@ -14,7 +13,6 @@ export interface ResponseRule {
   createdAt: string;
   updatedAt: string;
   createdBy: string;
-  status?: 'Active' | 'Inactive';
   lastTriggered?: string;
   conditions?: any[]; // Added for backward compatibility
   actions?: any[]; // Added for backward compatibility
@@ -89,7 +87,7 @@ export const responseRuleService = {
         condition: rule.condition || (rule.conditions && JSON.stringify(rule.conditions)) || '',
         action: rule.action || (rule.actions && JSON.stringify(rule.actions)) || '',
         severity: rule.severity,
-        active: rule.active || (rule.status === 'Active'),
+        active: rule.active,
         requiresApproval: rule.requiresApproval,
         createdBy: rule.createdBy || localStorage.getItem('userId') || 'admin'
       };
