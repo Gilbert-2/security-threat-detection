@@ -1,5 +1,5 @@
 
-import { Bell, Shield, User, Settings, Search, Menu, X } from "lucide-react";
+import { Bell, Shield, User, Settings, Search, Menu } from "lucide-react";
 import { Button } from "./ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
-import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
 
 // Mock notifications
 const notifications = [
@@ -45,10 +45,22 @@ const notifications = [
 
 export const Header = () => {
   const { toast } = useToast();
+  const { user, logout } = useAuth();
   const [unreadCount, setUnreadCount] = useState(2);
   const [searchValue, setSearchValue] = useState("");
   const navigate = useNavigate();
   
+  // Function to generate initials from name
+  const getInitials = (name: string) => {
+    if (!name) return "U";
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  };
+  
+  // Get user initials
+  const userInitials = user ? getInitials(`${user.firstName} ${user.lastName}`) : "U";
+  // User display name
+  const userName = user ? `${user.firstName} ${user.lastName}` : "User";
+
   const handleNotification = () => {
     toast({
       title: "Notifications",
@@ -78,6 +90,15 @@ export const Header = () => {
   const handleNotificationClick = (notificationId: number) => {
     navigate(`/notifications`);
     // In a real app, you would also select the specific notification
+  };
+
+  const handleLogout = () => {
+    logout();
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out",
+    });
+    navigate('/landing');
   };
 
   return (
@@ -178,10 +199,10 @@ export const Header = () => {
           <DropdownMenuTrigger asChild>
             <Button variant="secondary" size="sm" className="gap-2 ml-2">
               <Avatar className="h-6 w-6">
-                <AvatarImage src="https://api.dicebear.com/7.x/initials/svg?seed=SA" />
-                <AvatarFallback>SA</AvatarFallback>
+                <AvatarImage src={user?.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${userInitials}`} />
+                <AvatarFallback>{userInitials}</AvatarFallback>
               </Avatar>
-              <span className="hidden md:inline">Admin</span>
+              <span className="hidden md:inline">{user?.firstName || 'User'}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -202,7 +223,7 @@ export const Header = () => {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-security-red cursor-pointer">
+            <DropdownMenuItem className="text-security-red cursor-pointer" onClick={handleLogout}>
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>

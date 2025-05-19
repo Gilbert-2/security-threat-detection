@@ -1,10 +1,8 @@
-
 import { useLocation, NavLink, Outlet } from "react-router-dom";
 import { 
   Bell, 
   History as HistoryIcon, 
   Home,
-  LogOut,
   Menu, 
   Settings, 
   Shield,
@@ -20,7 +18,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
 
 // Navigation items for the sidebar
 const navigationItems = [
@@ -68,16 +65,7 @@ const userNavigationItems = [
 // The shared sidebar content component used by both desktop and mobile views
 const SidebarContent = () => {
   const { pathname } = useLocation();
-  const { user, logout } = useAuth();
-  const { toast } = useToast();
-
-  const handleLogout = () => {
-    logout();
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out",
-    });
-  };
+  const { user } = useAuth();
 
   // Function to generate initials from name
   const getInitials = (name: string) => {
@@ -162,9 +150,6 @@ const SidebarContent = () => {
               <p className="truncate text-xs text-muted-foreground">{user?.role || 'User'}</p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleLogout}>
-            <LogOut className="h-5 w-5" />
-          </Button>
         </div>
       </div>
     </div>

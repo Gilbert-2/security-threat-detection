@@ -1,3 +1,4 @@
+
 import { Header } from "@/components/Header";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +8,8 @@ import { AlertCircle, Bell, Check, Clock, Fingerprint, Shield, UserX } from "luc
 import { Button } from "@/components/ui/button";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 interface Notification {
   id: string;
@@ -81,6 +84,8 @@ const Notifications = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("all");
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchNotifications();
@@ -88,9 +93,9 @@ const Notifications = () => {
 
   const fetchNotifications = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('authToken');
       if (!token) {
-        navigate('/login');
+        navigate('/landing');
         return;
       }
 
@@ -106,6 +111,11 @@ const Notifications = () => {
       }
     } catch (err) {
       setError('Failed to fetch notifications');
+      toast({
+        title: "Error",
+        description: "Failed to fetch notifications. Please try again.",
+        variant: "destructive",
+      });
       console.error('Error fetching notifications:', err);
     } finally {
       setLoading(false);
@@ -114,7 +124,7 @@ const Notifications = () => {
 
   const markAsRead = async (id: string) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('authToken');
       await axios.patch(`http://localhost:7070/notifications/${id}/read`, {}, {
         headers: {
           Authorization: `Bearer ${token}`
@@ -125,13 +135,18 @@ const Notifications = () => {
         notification.id === id ? { ...notification, read: true } : notification
       ));
     } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to mark notification as read.",
+        variant: "destructive",
+      });
       console.error('Error marking notification as read:', err);
     }
   };
 
   const markAllAsRead = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('authToken');
       await axios.patch('http://localhost:7070/notifications/read-all', {}, {
         headers: {
           Authorization: `Bearer ${token}`
@@ -139,7 +154,16 @@ const Notifications = () => {
       });
 
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      toast({
+        title: "Success",
+        description: "All notifications marked as read.",
+      });
     } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to mark all notifications as read.",
+        variant: "destructive",
+      });
       console.error('Error marking all notifications as read:', err);
     }
   };
