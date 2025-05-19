@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -33,7 +32,11 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export function SignupForm() {
+interface SignupFormProps {
+  onSuccess?: () => void;
+}
+
+export function SignupForm({ onSuccess }: SignupFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [profileImage, setProfileImage] = useState<string | null>(null);
@@ -75,12 +78,28 @@ export function SignupForm() {
     setError(null);
     
     try {
-      await authService.signup(values);
+      await authService.signup({
+        firstName: values.firstName,
+        lastName: values.lastName,
+        email: values.email,
+        password: values.password,
+        phoneNumber: values.phoneNumber,
+        department: values.department,
+        role: values.role,
+        picture: values.picture,
+        // confirmPassword is not needed in the API call
+      });
+      
       toast({
         title: "Registration successful",
         description: "Your account has been created. Please log in.",
       });
-      navigate("/landing");
+      
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        navigate("/landing");
+      }
     } catch (error: any) {
       setError(error.message || "Failed to create account. Please try again.");
     } finally {
@@ -270,3 +289,5 @@ export function SignupForm() {
     </Card>
   );
 }
+
+export default SignupForm;

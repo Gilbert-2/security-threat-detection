@@ -16,7 +16,7 @@ export interface SignupRequest {
   phoneNumber: string;
   department: string;
   role: string;
-  picture?: string;
+  picture?: any; // Use any type for picture as it could be File or string
 }
 
 const API_URL = "http://localhost:7070";
@@ -68,12 +68,12 @@ export const authService = {
       
       // Create FormData for multipart upload if there's a picture file
       let request;
-      if (signupData.picture instanceof File) {
+      if (signupData.picture && typeof signupData.picture !== 'string') {
         const formData = new FormData();
         Object.entries(signupData).forEach(([key, value]) => {
-          if (key === 'picture' && value instanceof File) {
+          if (key === 'picture' && value !== null && typeof value !== 'string') {
             formData.append('picture', value);
-          } else {
+          } else if (value !== undefined) {
             formData.append(key, String(value));
           }
         });

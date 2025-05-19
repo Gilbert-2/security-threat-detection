@@ -1,4 +1,3 @@
-
 export interface ResponseRule {
   id: string;
   name: string;
@@ -182,6 +181,32 @@ export const responseRuleService = {
     } catch (error) {
       console.error(`Error deactivating response rule ${id}:`, error);
       throw error;
+    }
+  },
+
+  // Get response stats
+  getResponseStats: async (): Promise<ResponseStat> => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('http://localhost:7070/response-rules/stats', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch response stats');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching response stats:", error);
+      // Return default stats if there's an error
+      return {
+        totalTriggered: 0,
+        rulesTriggered: 0,
+        actionsByType: {}
+      };
     }
   }
 };
