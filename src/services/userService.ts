@@ -1,3 +1,4 @@
+
 import api from "./api";
 import { userActivities } from "@/data/mockData";
 
@@ -10,7 +11,7 @@ export interface User {
   department?: string;
   picture?: string;
   token?: string;
-  phoneNumber?: string; // Added phoneNumber property
+  phoneNumber?: string;
 }
 
 export interface UserActivity {
@@ -20,86 +21,230 @@ export interface UserActivity {
   timestamp: string;
   details?: string;
   alertId?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  type?: string;
 }
 
-// Mock user data - this would come from the backend
-const mockUsers: User[] = [
-  { 
-    id: "user-1", 
-    email: "admin@securitysystem.com", 
-    firstName: "Admin", 
-    lastName: "User", 
-    role: "Administrator", 
-    department: "Security", 
-    picture: "admin.jpg", 
-    token: "adminToken"
-  },
-  { 
-    id: "user-2", 
-    email: "operator@securitysystem.com", 
-    firstName: "Operator", 
-    lastName: "User", 
-    role: "Operator", 
-    department: "Security", 
-    picture: "operator.jpg", 
-    token: "operatorToken"
-  },
-  { 
-    id: "user-3", 
-    email: "viewer@securitysystem.com", 
-    firstName: "Viewer", 
-    lastName: "User", 
-    role: "Viewer", 
-    department: "Security", 
-    picture: "viewer.jpg", 
-    token: "viewerToken"
-  }
-];
-
 export const userService = {
-  // Get all users
+  // Get all users (admin only)
   getUsers: async (): Promise<User[]> => {
-    // const response = await api.get<User[]>("/users");
-    // return response.data;
-    
-    return Promise.resolve(mockUsers);
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('http://localhost:7070/users', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch users');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      throw error;
+    }
   },
 
   // Get user by ID
   getUserById: async (id: string): Promise<User | undefined> => {
-    // const response = await api.get<User>(`/users/${id}`);
-    // return response.data;
-    
-    return Promise.resolve(mockUsers.find(user => user.id === id));
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`http://localhost:7070/users/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch user');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error(`Error fetching user ${id}:`, error);
+      throw error;
+    }
+  },
+
+  // Delete user (admin only)
+  deleteUser: async (id: string): Promise<void> => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`http://localhost:7070/users/${id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete user');
+      }
+    } catch (error) {
+      console.error(`Error deleting user ${id}:`, error);
+      throw error;
+    }
   },
 
   // Get current logged in user
   getCurrentUser: async (): Promise<User> => {
-    // const response = await api.get<User>("/users/me");
-    // return response.data;
-    
-    // For now return the admin user
-    return Promise.resolve(mockUsers[0]);
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('http://localhost:7070/users/profile', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch profile');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+      throw error;
+    }
+  },
+  
+  // Update user profile
+  updateUserProfile: async (id: string, userData: Partial<User>): Promise<User> => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`http://localhost:7070/users/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(userData)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update profile');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      throw error;
+    }
   },
 
   // Get user activities
   getUserActivities: async (limit: number = 10): Promise<UserActivity[]> => {
-    // const response = await api.get<UserActivity[]>(`/user-activities?limit=${limit}`);
-    // return response.data;
-    
-    return Promise.resolve(userActivities.slice(0, limit));
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`http://localhost:7070/user-activity?limit=${limit}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch user activities');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching user activities:", error);
+      return userActivities.slice(0, limit); // Fallback to mock data
+    }
+  },
+  
+  // Get user-specific activity
+  getUserSpecificActivity: async (userId: string): Promise<UserActivity[]> => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`http://localhost:7070/user-activity/user/${userId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch user specific activities');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error(`Error fetching activities for user ${userId}:`, error);
+      throw error;
+    }
+  },
+  
+  // Get activity summary
+  getActivitySummary: async (): Promise<Record<string, any>> => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('http://localhost:7070/user-activity/summary', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch activity summary');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching activity summary:", error);
+      throw error;
+    }
+  },
+  
+  // Get activity type statistics
+  getActivityTypeStats: async (): Promise<Record<string, number>> => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('http://localhost:7070/user-activity/types', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch activity type statistics');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching activity type statistics:", error);
+      throw error;
+    }
   },
 
   // Log user activity (for client-side actions)
   logUserActivity: async (activity: Omit<UserActivity, "id" | "timestamp">): Promise<UserActivity> => {
-    // const response = await api.post<UserActivity>("/user-activities", activity);
-    // return response.data;
-    
-    console.log("User activity logged:", activity);
-    return Promise.resolve({
-      ...activity,
-      id: `activity-${Date.now()}`,
-      timestamp: new Date().toISOString()
-    });
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('http://localhost:7070/user-activity', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(activity)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to log user activity');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error("Error logging user activity:", error);
+      
+      // Fallback to mock response
+      return {
+        ...activity,
+        id: `activity-${Date.now()}`,
+        timestamp: new Date().toISOString()
+      };
+    }
   }
 };

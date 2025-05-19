@@ -16,6 +16,8 @@ import History from "./pages/History";
 import Incidents from "./pages/Incidents";
 import Landing from "./pages/Landing";
 import { Sidebar } from "./components/Sidebar";
+import ResponseRules from "./pages/ResponseRules";
+import UserActivity from "./pages/UserActivity";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +41,8 @@ const App = () => (
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/history" element={<History />} />
                 <Route path="/incidents" element={<Incidents />} />
+                <Route path="/response-rules" element={<ResponseRules />} />
+                <Route path="/user-activity" element={<UserActivity />} />
               </Route>
             </Route>
 

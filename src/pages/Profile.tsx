@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Header } from "@/components/Header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -7,10 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Fingerprint, History, Key, LogOut, Save, ShieldAlert, User } from "lucide-react";
+import { Fingerprint, History, Key, LogOut, Save, ShieldAlert, User as UserIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { userService, UserActivity } from "@/services/userService";
 
 const Profile = () => {
   const { user, logout } = useAuth();
@@ -18,23 +20,63 @@ const Profile = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [userActivities, setUserActivities] = useState<UserActivity[]>([]);
+  const [activityLoading, setActivityLoading] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      setLoading(false);
-    } else {
-      setError('No user data available');
-      setLoading(false);
-    }
-  }, [user]);
+    const loadUserData = async () => {
+      try {
+        // If we don't have user data, try to fetch it
+        if (!user) {
+          const token = localStorage.getItem('authToken');
+          if (token) {
+            const userData = await userService.getCurrentUser();
+            if (userData) {
+              localStorage.setItem("currentUser", JSON.stringify(userData));
+            }
+          } else {
+            setError('Authentication token not found');
+            navigate('/landing');
+          }
+        }
+        setLoading(false);
+      } catch (err) {
+        console.error("Error loading user data:", err);
+        setError('Failed to load user data');
+        setLoading(false);
+      }
+    };
+    
+    loadUserData();
+  }, [user, navigate]);
+
+  // Fetch user activity when the component mounts
+  useEffect(() => {
+    const fetchUserActivity = async () => {
+      if (user?.id) {
+        try {
+          setActivityLoading(true);
+          const activities = await userService.getUserSpecificActivity(user.id);
+          setUserActivities(activities);
+        } catch (err) {
+          console.error("Failed to fetch user activities:", err);
+        } finally {
+          setActivityLoading(false);
+        }
+      }
+    };
+
+    fetchUserActivity();
+  }, [user?.id]);
 
   const handleLogout = () => {
     logout();
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out",
-    });
     navigate('/landing');
+  };
+
+  const formatActivityDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString();
   };
 
   if (loading) {
@@ -87,8 +129,8 @@ const Profile = () => {
             </CardHeader>
             <CardContent className="flex flex-col items-center">
               <Avatar className="h-24 w-24 mb-4">
-                <AvatarImage src={user.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${user.firstName}${user.lastName}`} alt="Profile image" />
-                <AvatarFallback>{user.firstName[0]}{user.lastName[0]}</AvatarFallback>
+                <AvatarImage src={user.picture ? `http://localhost:7070/uploads/${user.picture}` : `https://api.dicebear.com/7.x/initials/svg?seed=${user.firstName}${user.lastName}`} alt="Profile image" />
+                <AvatarFallback>{user.firstName?.[0]}{user.lastName?.[0]}</AvatarFallback>
               </Avatar>
               <h3 className="text-xl font-bold">{user.firstName} {user.lastName}</h3>
               <p className="text-muted-foreground text-sm">{user.department || 'No department'}</p>
@@ -107,10 +149,6 @@ const Profile = () => {
                   <span className="text-muted-foreground">Phone</span>
                   <span>{user.phoneNumber || 'N/A'}</span>
                 </div>
-                <div className="flex justify-between items-center p-2 rounded-md bg-slate-800/50">
-                  <span className="text-muted-foreground">Last Login</span>
-                  <span>N/A</span>
-                </div>
               </div>
               
               <Button variant="outline" className="w-full mt-6 gap-2" onClick={handleLogout}>
@@ -124,7 +162,7 @@ const Profile = () => {
             <Tabs defaultValue="account" className="w-full">
               <TabsList className="grid grid-cols-3 mb-4">
                 <TabsTrigger value="account" className="flex gap-2">
-                  <User className="h-4 w-4" /> Account
+                  <UserIcon className="h-4 w-4" /> Account
                 </TabsTrigger>
                 <TabsTrigger value="security" className="flex gap-2">
                   <ShieldAlert className="h-4 w-4" /> Security
@@ -138,7 +176,7 @@ const Profile = () => {
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-lg">Account Information</CardTitle>
-                    <CardDescription>Update your personal details</CardDescription>
+                    <CardDescription>View your personal details</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <form>
@@ -253,10 +291,38 @@ const Profile = () => {
                     <CardDescription>Recent activity on your account</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      {/* Activity log will be implemented when backend provides this data */}
-                      <p className="text-muted-foreground">Activity log will be available soon.</p>
-                    </div>
+                    {activityLoading ? (
+                      <div className="text-center py-4">Loading activity data...</div>
+                    ) : userActivities.length > 0 ? (
+                      <div className="space-y-4">
+                        {userActivities.map((activity) => (
+                          <div 
+                            key={activity.id} 
+                            className="flex items-start border-b border-slate-800 pb-3 last:border-0"
+                          >
+                            <div className="p-2 rounded-full bg-slate-800 mr-3">
+                              <History className="h-4 w-4" />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex justify-between">
+                                <p className="font-medium text-sm">{activity.action}</p>
+                                <span className="text-xs text-muted-foreground">
+                                  {formatActivityDate(activity.timestamp)}
+                                </span>
+                              </div>
+                              {activity.details && (
+                                <p className="text-xs text-muted-foreground mt-1">{activity.details}</p>
+                              )}
+                              {activity.ipAddress && (
+                                <p className="text-xs mt-1">IP: {activity.ipAddress}</p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground">No activity records found.</p>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>

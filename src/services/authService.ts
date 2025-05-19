@@ -1,3 +1,4 @@
+
 import { User } from "./userService";
 import { toast } from "@/hooks/use-toast";
 
@@ -65,13 +66,33 @@ export const authService = {
       // Remove confirmPassword as it's not needed by the API
       const { confirmPassword, ...signupData } = userData;
       
-      const response = await fetch(`${API_URL}/auth/register`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(signupData),
-      });
+      // Create FormData for multipart upload if there's a picture file
+      let request;
+      if (signupData.picture instanceof File) {
+        const formData = new FormData();
+        Object.entries(signupData).forEach(([key, value]) => {
+          if (key === 'picture' && value instanceof File) {
+            formData.append('picture', value);
+          } else {
+            formData.append(key, String(value));
+          }
+        });
+        
+        request = fetch(`${API_URL}/auth/register`, {
+          method: "POST",
+          body: formData,
+        });
+      } else {
+        request = fetch(`${API_URL}/auth/register`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(signupData),
+        });
+      }
+      
+      const response = await request;
 
       if (!response.ok) {
         const errorData = await response.json();

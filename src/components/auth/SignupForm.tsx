@@ -1,59 +1,46 @@
 
 import { useState } from "react";
-import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { authService } from "@/services/authService";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { authService } from "@/services/authService";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Upload } from "lucide-react";
 
-// Define form schema with validation
+// Validation schema
 const formSchema = z.object({
-  firstName: z.string().min(1, { message: "First name is required" }),
-  lastName: z.string().min(1, { message: "Last name is required" }),
-  email: z.string().email({ message: "Please enter a valid email address" }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
-  confirmPassword: z.string().min(6, { message: "Confirm password is required" }),
-  phoneNumber: z.string().min(1, { message: "Phone number is required" }),
+  firstName: z.string().min(2, { message: "First name must be at least 2 characters." }),
+  lastName: z.string().min(2, { message: "Last name must be at least 2 characters." }),
+  email: z.string().email({ message: "Please enter a valid email address." }),
+  password: z.string().min(8, { message: "Password must be at least 8 characters long." }),
+  confirmPassword: z.string(),
+  phoneNumber: z.string().min(10, { message: "Please enter a valid phone number." }),
   department: z.string().min(1, { message: "Department is required" }),
   role: z.string().min(1, { message: "Role is required" }),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords must match",
+  picture: z.any().optional(),
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
   path: ["confirmPassword"],
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
-const departments = [
-  "IT",
-  "Security",
-  "Operations",
-  "Management",
-  "HR",
-  "Finance",
-  "Marketing",
-  "Sales",
-  "Other"
-];
-
-const roles = [
-  "user",
-  "admin",
-  "manager",
-  "supervisor"
-];
-
-interface SignupFormProps {
-  onSuccess?: () => void;
-}
-
-const SignupForm = ({ onSuccess }: SignupFormProps) => {
+export function SignupForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
   const { toast } = useToast();
-  
+  const navigate = useNavigate();
+
+  // Initialize form with default values
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -65,229 +52,221 @@ const SignupForm = ({ onSuccess }: SignupFormProps) => {
       phoneNumber: "",
       department: "",
       role: "user",
+      picture: undefined,
     },
   });
-  
-  const onSubmit = async (data: FormValues) => {
+
+  // Handle profile picture upload
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfileImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      form.setValue("picture", file);
+    }
+  };
+
+  // Form submission handler
+  const onSubmit = async (values: FormValues) => {
     setIsLoading(true);
+    setError(null);
+    
     try {
-      await authService.signup({
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
-        password: data.password,
-        phoneNumber: data.phoneNumber,
-        department: data.department,
-        role: data.role,
+      await authService.signup(values);
+      toast({
+        title: "Registration successful",
+        description: "Your account has been created. Please log in.",
       });
-      
-      form.reset();
-      
-      if (onSuccess) {
-        onSuccess();
-      }
-    } catch (error) {
-      console.error("Signup error:", error);
-      // Error toast is handled in authService
+      navigate("/landing");
+    } catch (error: any) {
+      setError(error.message || "Failed to create account. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="firstName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>First Name</FormLabel>
-                <FormControl>
-                  <Input 
-                    placeholder="John" 
-                    {...field} 
-                    autoComplete="given-name"
-                    disabled={isLoading}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+    <Card className="w-full max-w-md">
+      <CardHeader>
+        <CardTitle className="text-xl">Create an Account</CardTitle>
+        <CardDescription>
+          Register to access the security system
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-          <FormField
-            control={form.control}
-            name="lastName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Last Name</FormLabel>
-                <FormControl>
-                  <Input 
-                    placeholder="Doe" 
-                    {...field} 
-                    autoComplete="family-name"
-                    disabled={isLoading}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input 
-                  placeholder="your.email@example.com" 
-                  type="email" 
-                  {...field} 
-                  autoComplete="email"
-                  disabled={isLoading}
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="flex justify-center mb-6">
+              <div className="relative">
+                <Avatar className="h-24 w-24">
+                  <AvatarImage src={profileImage || ""} alt="Profile preview" />
+                  <AvatarFallback className="bg-muted">
+                    <Upload className="h-8 w-8 text-muted-foreground" />
+                  </AvatarFallback>
+                </Avatar>
+                <Input
+                  type="file"
+                  id="picture"
+                  accept="image/*"
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  onChange={handleImageChange}
                 />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="phoneNumber"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Phone Number</FormLabel>
-              <FormControl>
-                <Input 
-                  placeholder="+1234567890" 
-                  {...field} 
-                  autoComplete="tel"
-                  disabled={isLoading}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Password</FormLabel>
-                <FormControl>
-                  <Input 
-                    placeholder="••••••••" 
-                    type="password" 
-                    {...field} 
-                    autoComplete="new-password"
-                    disabled={isLoading}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="confirmPassword"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Confirm Password</FormLabel>
-                <FormControl>
-                  <Input 
-                    placeholder="••••••••" 
-                    type="password" 
-                    {...field} 
-                    autoComplete="new-password"
-                    disabled={isLoading}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="department"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Department</FormLabel>
-                <Select 
-                  onValueChange={field.onChange} 
-                  defaultValue={field.value} 
-                  disabled={isLoading}
+                <Button 
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="absolute bottom-0 right-0 rounded-full"
+                  onClick={() => document.getElementById('picture')?.click()}
                 >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select your department" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept} value={dept}>
-                        {dept}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                  <Upload className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
 
-          <FormField
-            control={form.control}
-            name="role"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Role</FormLabel>
-                <Select 
-                  onValueChange={field.onChange} 
-                  defaultValue={field.value}
-                  disabled={isLoading}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select your role" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {roles.map((role) => (
-                      <SelectItem key={role} value={role}>
-                        {role.charAt(0).toUpperCase() + role.slice(1)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="firstName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>First Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="John" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="lastName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Last Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Doe" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-        <Button 
-          type="submit" 
-          className="w-full" 
-          disabled={isLoading}
-        >
-          {isLoading ? "Creating account..." : "Create account"}
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input placeholder="john.doe@example.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="phoneNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone Number</FormLabel>
+                  <FormControl>
+                    <Input placeholder="+1234567890" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="department"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Department</FormLabel>
+                  <FormControl>
+                    <Input placeholder="IT" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Role</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select role" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="user">User</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="manager">Manager</SelectItem>
+                      <SelectItem value="supervisor">Supervisor</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <Input type="password" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Confirm Password</FormLabel>
+                  <FormControl>
+                    <Input type="password" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Registering..." : "Register"}
+            </Button>
+          </form>
+        </Form>
+      </CardContent>
+      <CardFooter className="flex justify-center">
+        <Button variant="link" onClick={() => navigate("/landing")}>
+          Already have an account? Log in
         </Button>
-      </form>
-    </Form>
+      </CardFooter>
+    </Card>
   );
-};
-
-export default SignupForm;
+}

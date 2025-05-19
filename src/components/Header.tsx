@@ -1,233 +1,190 @@
 
-import { Bell, Shield, User, Settings, Search, Menu } from "lucide-react";
-import { Button } from "./ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { Link, useNavigate } from "react-router-dom";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Badge } from "./ui/badge";
-import { Input } from "./ui/input";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-
-// Mock notifications
-const notifications = [
-  {
-    id: 1,
-    title: "Unauthorized Access Attempt",
-    message: "Someone attempted to access restricted area A-7",
-    time: "10 mins ago",
-    read: false
-  },
-  {
-    id: 2,
-    title: "System Update Available",
-    message: "A new security patch is available for installation",
-    time: "2 hours ago",
-    read: false
-  },
-  {
-    id: 3,
-    title: "Camera 4 Offline",
-    message: "The camera in the east corridor is currently offline",
-    time: "Yesterday",
-    read: true
-  }
-];
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Bell, LogOut, User, Settings } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { notificationService, Notification } from "@/services/notificationService";
 
 export const Header = () => {
-  const { toast } = useToast();
   const { user, logout } = useAuth();
-  const [unreadCount, setUnreadCount] = useState(2);
-  const [searchValue, setSearchValue] = useState("");
   const navigate = useNavigate();
-  
-  // Function to generate initials from name
-  const getInitials = (name: string) => {
-    if (!name) return "U";
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
-  };
-  
-  // Get user initials
-  const userInitials = user ? getInitials(`${user.firstName} ${user.lastName}`) : "U";
-  // User display name
-  const userName = user ? `${user.firstName} ${user.lastName}` : "User";
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleNotification = () => {
-    toast({
-      title: "Notifications",
-      description: "You have 3 unread alerts that require attention",
-    });
-  };
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      if (user) {
+        setIsLoading(true);
+        try {
+          const notificationsData = await notificationService.getNotifications();
+          setNotifications(notificationsData);
+        } catch (error) {
+          console.error("Failed to fetch notifications:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
 
-  const markAsRead = () => {
-    setUnreadCount(0);
-    toast({
-      title: "Notifications Cleared",
-      description: "All notifications have been marked as read",
-    });
-  };
+    fetchNotifications();
+    
+    // Set up polling for notifications
+    const interval = setInterval(fetchNotifications, 30000); // Poll every 30 seconds
+    return () => clearInterval(interval);
+  }, [user]);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchValue.trim()) {
-      toast({
-        title: "Searching",
-        description: `Searching for "${searchValue}"`,
-      });
-      // In a real app, you would redirect to search results or filter current view
-    }
-  };
-
-  const handleNotificationClick = (notificationId: number) => {
-    navigate(`/notifications`);
-    // In a real app, you would also select the specific notification
-  };
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   const handleLogout = () => {
     logout();
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out",
-    });
-    navigate('/landing');
+    navigate("/landing");
+  };
+
+  const handleNotificationClick = async (notification: Notification) => {
+    if (!notification.read) {
+      try {
+        await notificationService.markAsRead(notification.id);
+        setNotifications(prevNotifications => 
+          prevNotifications.map(n => 
+            n.id === notification.id ? { ...n, read: true } : n
+          )
+        );
+      } catch (error) {
+        console.error("Failed to mark notification as read:", error);
+      }
+    }
+    
+    navigate("/notifications");
+  };
+
+  const formatNotificationTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+    
+    if (diffInMinutes < 60) {
+      return `${diffInMinutes} min ago`;
+    } else if (diffInMinutes < 24 * 60) {
+      return `${Math.floor(diffInMinutes / 60)} hr ago`;
+    } else {
+      return date.toLocaleDateString();
+    }
   };
 
   return (
-    <header className="flex items-center justify-between p-4 bg-slate-900/80 border-b border-slate-700/50 backdrop-blur-md sticky top-0 z-10">
-      <div className="flex items-center gap-3">
-        <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-security-blue/20 text-security-blue">
-          <Shield className="h-6 w-6" />
+    <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur p-4 sticky top-0 z-10">
+      <div className="container mx-auto flex justify-between items-center">
+        <div className="flex items-center">
+          <Button variant="link" className="mr-2 pl-0" onClick={() => navigate("/")}>
+            <span className="text-xl font-bold text-security-blue">Security</span>
+            <span className="text-xl">Monitor</span>
+          </Button>
         </div>
-        <div>
-          <h1 className="text-xl font-bold bg-gradient-to-r from-security-blue to-accent bg-clip-text text-transparent">Security Threat Dashboard</h1>
-          <p className="text-xs text-muted-foreground hidden sm:block">Real-time threat monitoring & response</p>
-        </div>
-      </div>
-      
-      <div className="flex items-center gap-2">
-        <form onSubmit={handleSearch} className="relative hidden md:flex items-center">
-          <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search..."
-            className="pl-8 bg-slate-950/50 border-slate-800 w-[200px] lg:w-[300px] h-9"
-            value={searchValue}
-            onChange={(e) => setSearchValue(e.target.value)}
-          />
-        </form>
-        
-        <span className="text-sm text-muted-foreground hidden lg:flex items-center gap-1.5 ml-4">
-          <span className="h-2 w-2 bg-green-500 rounded-full"></span>
-          System Status: Active
-        </span>
-        
-        {/* Notification Dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="relative ml-2"
-            >
-              <Bell className="h-4 w-4" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-security-red text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                  {unreadCount}
-                </span>
-              )}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-80" align="end">
-            <DropdownMenuLabel className="flex items-center justify-between">
-              Notifications
-              {unreadCount > 0 && (
-                <Button variant="ghost" size="sm" onClick={markAsRead} className="h-8 text-xs">
-                  Mark all as read
+
+        {user ? (
+          <div className="flex items-center gap-4">
+            {/* Notifications */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative">
+                  <Bell className="h-5 w-5" />
+                  {unreadCount > 0 && (
+                    <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-security-blue">
+                      {unreadCount}
+                    </Badge>
+                  )}
                 </Button>
-              )}
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              {notifications.map(notification => (
-                <DropdownMenuItem key={notification.id} className="p-0">
-                  <div 
-                    onClick={() => handleNotificationClick(notification.id)} 
-                    className="flex flex-col w-full px-2 py-2 cursor-pointer"
-                  >
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium text-sm flex items-center gap-1.5">
-                        {notification.title}
-                        {!notification.read && (
-                          <Badge variant="default" className="h-1.5 w-1.5 p-0 rounded-full bg-security-blue" />
-                        )}
-                      </span>
-                      <span className="text-xs text-muted-foreground">{notification.time}</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground mt-1">{notification.message}</span>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-0" side="bottom" align="end">
+                <div className="p-3 border-b border-slate-800">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium">Notifications</h3>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-xs hover:bg-transparent hover:underline"
+                      onClick={() => navigate("/notifications")}
+                    >
+                      View All
+                    </Button>
                   </div>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link to="/notifications" className="justify-center font-medium cursor-pointer">
-                View all notifications
-              </Link>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        
-        {/* Settings Button */}
-        <Button variant="outline" size="sm" className="gap-2 hidden sm:flex ml-2" asChild>
-          <Link to="/settings">
-            <Settings className="h-4 w-4" />
-            <span className="hidden md:inline">Settings</span>
-          </Link>
-        </Button>
-        
-        {/* Profile Dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="secondary" size="sm" className="gap-2 ml-2">
-              <Avatar className="h-6 w-6">
-                <AvatarImage src={user?.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${userInitials}`} />
-                <AvatarFallback>{userInitials}</AvatarFallback>
-              </Avatar>
-              <span className="hidden md:inline">{user?.firstName || 'User'}</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem asChild>
-                <Link to="/profile" className="cursor-pointer">
+                </div>
+                
+                <div className="max-h-72 overflow-y-auto">
+                  {isLoading ? (
+                    <div className="p-4 text-center">Loading...</div>
+                  ) : notifications.length > 0 ? (
+                    notifications.slice(0, 5).map((notification) => (
+                      <div 
+                        key={notification.id}
+                        className={`p-3 border-b border-slate-800 cursor-pointer hover:bg-slate-800/50 ${!notification.read ? 'bg-slate-800/20' : ''}`}
+                        onClick={() => handleNotificationClick(notification)}
+                      >
+                        <div className="flex justify-between items-start">
+                          <h4 className="text-sm font-medium">
+                            {notification.title}
+                            {!notification.read && <span className="ml-2 text-xs text-security-blue">New</span>}
+                          </h4>
+                          <span className="text-xs text-muted-foreground">{formatNotificationTime(notification.createdAt)}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{notification.description}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-muted-foreground text-sm">
+                      No notifications
+                    </div>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {/* User Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user.picture ? `http://localhost:7070/uploads/${user.picture}` : `https://api.dicebear.com/7.x/initials/svg?seed=${user.firstName}${user.lastName}`} alt={user.firstName} />
+                    <AvatarFallback>{user.firstName?.[0]}{user.lastName?.[0]}</AvatarFallback>
+                  </Avatar>
+                  <span className="ml-2 hidden sm:inline-block">{user.firstName} {user.lastName}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <div className="flex items-center justify-start gap-2 p-2">
+                  <div className="flex flex-col space-y-1 leading-none">
+                    <p className="font-medium">{user.firstName} {user.lastName}</p>
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                  </div>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate("/profile")}>
                   <User className="mr-2 h-4 w-4" />
                   <span>Profile</span>
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/settings" className="cursor-pointer">
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/settings")}>
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Settings</span>
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-security-red cursor-pointer" onClick={handleLogout}>
-              Log out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" onClick={() => navigate("/landing")}>Login</Button>
+            <Button onClick={() => navigate("/landing")}>Sign Up</Button>
+          </div>
+        )}
       </div>
     </header>
   );
