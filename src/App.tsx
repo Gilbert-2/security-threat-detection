@@ -18,6 +18,7 @@ import Landing from "./pages/Landing";
 import { Sidebar } from "./components/Sidebar";
 import ResponseRules from "./pages/ResponseRules";
 import UserActivity from "./pages/UserActivity";
+import AdminDashboard from "./pages/AdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,7 @@ const App = () => (
                 <Route path="/incidents" element={<Incidents />} />
                 <Route path="/response-rules" element={<ResponseRules />} />
                 <Route path="/user-activity" element={<UserActivity />} />
+                <Route path="/admin" element={<AdminDashboard />} />
               </Route>
             </Route>
 

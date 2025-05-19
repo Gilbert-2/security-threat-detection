@@ -1,32 +1,33 @@
+
+import api from "./api";
+
+// Types
 export interface ResponseRule {
   id: string;
   name: string;
   description: string;
-  conditions: Array<{
-    type: string;
-    value: string;
-  }>;
-  actions: Array<{
-    type: string;
-    target: string;
-    delay?: number;
-  }>;
-  status: "Active" | "Inactive";
-  severity: string;
+  condition: string;
+  action: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  active: boolean;
   requiresApproval: boolean;
-  triggerCount: number;
-  lastTriggered?: string;
-  createdBy?: string;
-  updatedBy?: string;
   createdAt: string;
   updatedAt: string;
+  createdBy: string;
 }
 
-export interface ResponseStat {
-  totalTriggered: number;
-  rulesTriggered: number;
-  lastTriggeredTime?: string;
-  actionsByType?: Record<string, number>;
+export interface ResponseRuleStats {
+  total: number;
+  active: number;
+  inactive: number;
+  bySeverity: {
+    low: number;
+    medium: number;
+    high: number;
+    critical: number;
+  };
+  requiresApproval: number;
+  activePercentage: number;
 }
 
 export const responseRuleService = {
@@ -72,8 +73,8 @@ export const responseRuleService = {
     }
   },
 
-  // Create a new response rule
-  createResponseRule: async (rule: Omit<ResponseRule, "id" | "triggerCount" | "lastTriggered" | "createdAt" | "updatedAt">): Promise<ResponseRule> => {
+  // Create response rule
+  createResponseRule: async (rule: Omit<ResponseRule, 'id' | 'createdAt' | 'updatedAt'>): Promise<ResponseRule> => {
     try {
       const token = localStorage.getItem('authToken');
       const response = await fetch('http://localhost:7070/response-rules', {
@@ -96,7 +97,7 @@ export const responseRuleService = {
     }
   },
 
-  // Update a response rule
+  // Update response rule
   updateResponseRule: async (id: string, rule: Partial<ResponseRule>): Promise<ResponseRule> => {
     try {
       const token = localStorage.getItem('authToken');
@@ -120,7 +121,7 @@ export const responseRuleService = {
     }
   },
 
-  // Delete a response rule
+  // Delete response rule
   deleteResponseRule: async (id: string): Promise<void> => {
     try {
       const token = localStorage.getItem('authToken');
@@ -140,7 +141,7 @@ export const responseRuleService = {
     }
   },
 
-  // Activate a response rule
+  // Activate response rule
   activateRule: async (id: string): Promise<ResponseRule> => {
     try {
       const token = localStorage.getItem('authToken');
@@ -162,7 +163,7 @@ export const responseRuleService = {
     }
   },
 
-  // Deactivate a response rule
+  // Deactivate response rule
   deactivateRule: async (id: string): Promise<ResponseRule> => {
     try {
       const token = localStorage.getItem('authToken');
@@ -183,9 +184,9 @@ export const responseRuleService = {
       throw error;
     }
   },
-
-  // Get response stats
-  getResponseStats: async (): Promise<ResponseStat> => {
+  
+  // Get response statistics
+  getResponseStats: async (): Promise<ResponseRuleStats> => {
     try {
       const token = localStorage.getItem('authToken');
       const response = await fetch('http://localhost:7070/response-rules/stats', {
@@ -201,11 +202,19 @@ export const responseRuleService = {
       return await response.json();
     } catch (error) {
       console.error("Error fetching response stats:", error);
-      // Return default stats if there's an error
+      // Return mock stats as fallback
       return {
-        totalTriggered: 0,
-        rulesTriggered: 0,
-        actionsByType: {}
+        total: 0,
+        active: 0,
+        inactive: 0,
+        bySeverity: {
+          low: 0,
+          medium: 0,
+          high: 0,
+          critical: 0
+        },
+        requiresApproval: 0,
+        activePercentage: 0
       };
     }
   }

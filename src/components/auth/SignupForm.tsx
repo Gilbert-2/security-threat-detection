@@ -1,314 +1,231 @@
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Button } from "@/components/ui/button";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
 import { authService } from "@/services/authService";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Upload } from "lucide-react";
 
-// Validation schema
-const formSchema = z.object({
-  firstName: z.string().min(2, { message: "First name must be at least 2 characters." }),
-  lastName: z.string().min(2, { message: "Last name must be at least 2 characters." }),
-  email: z.string().email({ message: "Please enter a valid email address." }),
-  password: z.string().min(8, { message: "Password must be at least 8 characters long." }),
+const signupSchema = z.object({
+  firstName: z.string().min(2, "First name must be at least 2 characters"),
+  lastName: z.string().min(2, "Last name must be at least 2 characters"),
+  email: z.string().email("Please enter a valid email"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
   confirmPassword: z.string(),
-  phoneNumber: z.string().min(10, { message: "Please enter a valid phone number." }),
-  department: z.string().min(1, { message: "Department is required" }),
-  role: z.string().min(1, { message: "Role is required" }),
-  picture: z.any().optional(),
-}).refine(data => data.password === data.confirmPassword, {
-  message: "Passwords do not match",
+  department: z.string().optional(),
+  phoneNumber: z.string().optional(),
+  role: z.string().optional(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
   path: ["confirmPassword"],
 });
 
-type FormValues = z.infer<typeof formSchema>;
+type SignupFormValues = z.infer<typeof signupSchema>;
 
 interface SignupFormProps {
-  onSuccess?: () => void;
+  onSuccess: () => void;
 }
 
-// Department options
-const departments = [
-  { value: "IT", label: "Information Technology" },
-  { value: "Security", label: "Security" },
-  { value: "Operations", label: "Operations" },
-  { value: "Management", label: "Management" },
-];
-
 export function SignupForm({ onSuccess }: SignupFormProps) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [profileImage, setProfileImage] = useState<string | null>(null);
-  const { toast } = useToast();
-  const navigate = useNavigate();
-
-  // Initialize form with default values
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+  const { register, handleSubmit, formState: { errors }, setError, setValue, watch } = useForm<SignupFormValues>({
+    resolver: zodResolver(signupSchema),
     defaultValues: {
-      firstName: "",
-      lastName: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-      phoneNumber: "",
-      department: "",
       role: "user",
-      picture: undefined,
-    },
-  });
-
-  // Handle profile picture upload
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfileImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-      form.setValue("picture", file);
+      department: "security",
     }
-  };
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
-  // Form submission handler
-  const onSubmit = async (values: FormValues) => {
-    setIsLoading(true);
-    setError(null);
-    
+  const onSubmit = async (data: SignupFormValues) => {
     try {
+      setIsLoading(true);
+      
+      // Remove confirmPassword as it's not needed for the API
+      const { confirmPassword, ...signupData } = data;
+
+      // Call signup API
       await authService.signup({
-        firstName: values.firstName,
-        lastName: values.lastName,
-        email: values.email,
-        password: values.password,
-        phoneNumber: values.phoneNumber,
-        department: values.department,
-        role: values.role,
-        picture: values.picture,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        password: data.password,
+        department: data.department,
+        phoneNumber: data.phoneNumber,
+        role: data.role || "user",
       });
-      
+
       toast({
-        title: "Registration successful",
-        description: "Your account has been created. Please log in.",
+        title: "Account created",
+        description: "Your account has been created successfully. You can now log in.",
+        variant: "default",
       });
       
-      if (onSuccess) {
-        onSuccess();
+      onSuccess();
+    } catch (error) {
+      console.error("Signup error:", error);
+      
+      // Handle known error types
+      if (error instanceof Error) {
+        if (error.message.includes("Email already exists")) {
+          setError("email", {
+            type: "manual",
+            message: "This email is already registered"
+          });
+        } else {
+          toast({
+            title: "Registration failed",
+            description: error.message || "There was a problem creating your account",
+            variant: "destructive",
+          });
+        }
       } else {
-        navigate("/landing");
+        toast({
+          title: "Registration failed",
+          description: "There was a problem creating your account",
+          variant: "destructive",
+        });
       }
-    } catch (error: any) {
-      setError(error.message || "Failed to create account. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-xl">Create an Account</CardTitle>
-        <CardDescription>
-          Register to access the security system
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="max-h-[60vh] overflow-y-auto">
-        {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-h-[60vh] overflow-y-auto py-4 px-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label htmlFor="firstName" className="text-sm font-medium">
+            First Name
+          </label>
+          <Input
+            id="firstName"
+            {...register("firstName")}
+            autoComplete="given-name"
+            disabled={isLoading}
+          />
+          {errors.firstName && (
+            <p className="text-sm text-red-500">{errors.firstName.message}</p>
+          )}
+        </div>
+        
+        <div className="space-y-2">
+          <label htmlFor="lastName" className="text-sm font-medium">
+            Last Name
+          </label>
+          <Input
+            id="lastName"
+            {...register("lastName")}
+            autoComplete="family-name"
+            disabled={isLoading}
+          />
+          {errors.lastName && (
+            <p className="text-sm text-red-500">{errors.lastName.message}</p>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <label htmlFor="email" className="text-sm font-medium">
+          Email
+        </label>
+        <Input
+          id="email"
+          type="email"
+          {...register("email")}
+          autoComplete="email"
+          disabled={isLoading}
+        />
+        {errors.email && (
+          <p className="text-sm text-red-500">{errors.email.message}</p>
         )}
+      </div>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
-            <div className="flex justify-center mb-4">
-              <div className="relative">
-                <Avatar className="h-20 w-20">
-                  <AvatarImage src={profileImage || ""} alt="Profile preview" />
-                  <AvatarFallback className="bg-muted">
-                    <Upload className="h-6 w-6 text-muted-foreground" />
-                  </AvatarFallback>
-                </Avatar>
-                <Input
-                  type="file"
-                  id="picture"
-                  accept="image/*"
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  onChange={handleImageChange}
-                />
-                <Button 
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  className="absolute bottom-0 right-0 rounded-full"
-                  onClick={() => document.getElementById('picture')?.click()}
-                >
-                  <Upload className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label htmlFor="department" className="text-sm font-medium">
+            Department
+          </label>
+          <Select 
+            defaultValue="security"
+            onValueChange={(value) => setValue("department", value)}
+            disabled={isLoading}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select department" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="security">Security</SelectItem>
+              <SelectItem value="it">IT</SelectItem>
+              <SelectItem value="operations">Operations</SelectItem>
+              <SelectItem value="management">Management</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="space-y-2">
+          <label htmlFor="phoneNumber" className="text-sm font-medium">
+            Phone Number (optional)
+          </label>
+          <Input
+            id="phoneNumber"
+            {...register("phoneNumber")}
+            autoComplete="tel"
+            disabled={isLoading}
+          />
+        </div>
+      </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <FormField
-                control={form.control}
-                name="firstName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>First Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="John" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="lastName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Last Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Doe" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+      <div className="space-y-2">
+        <label htmlFor="password" className="text-sm font-medium">
+          Password
+        </label>
+        <Input
+          id="password"
+          type="password"
+          {...register("password")}
+          autoComplete="new-password"
+          disabled={isLoading}
+        />
+        {errors.password && (
+          <p className="text-sm text-red-500">{errors.password.message}</p>
+        )}
+      </div>
 
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="john.doe@example.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+      <div className="space-y-2">
+        <label htmlFor="confirmPassword" className="text-sm font-medium">
+          Confirm Password
+        </label>
+        <Input
+          id="confirmPassword"
+          type="password"
+          {...register("confirmPassword")}
+          autoComplete="new-password"
+          disabled={isLoading}
+        />
+        {errors.confirmPassword && (
+          <p className="text-sm text-red-500">{errors.confirmPassword.message}</p>
+        )}
+      </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="confirmPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Confirm</FormLabel>
-                    <FormControl>
-                      <Input type="password" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <FormField
-                control={form.control}
-                name="phoneNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Phone</FormLabel>
-                    <FormControl>
-                      <Input placeholder="+1234567890" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="department"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Department</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select department" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {departments.map((dept) => (
-                          <SelectItem key={dept.value} value={dept.value}>
-                            {dept.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="role"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Role</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select role" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="user">User</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="manager">Manager</SelectItem>
-                      <SelectItem value="supervisor">Supervisor</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <Button type="submit" className="w-full mt-2" disabled={isLoading}>
-              {isLoading ? "Registering..." : "Register"}
-            </Button>
-          </form>
-        </Form>
-      </CardContent>
-      <CardFooter className="flex justify-center pt-2 pb-3">
-        <Button variant="link" onClick={() => navigate("/landing")}>
-          Already have an account? Log in
-        </Button>
-      </CardFooter>
-    </Card>
+      <Button type="submit" className="w-full" disabled={isLoading}>
+        {isLoading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating Account...
+          </>
+        ) : (
+          <>
+            <CheckCircle2 className="mr-2 h-4 w-4" /> Create Account
+          </>
+        )}
+      </Button>
+    </form>
   );
 }
 
+// Export the component as default and named export
 export default SignupForm;

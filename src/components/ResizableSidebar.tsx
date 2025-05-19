@@ -14,7 +14,8 @@ import {
   Shield,
   User,
   History,
-  AlertCircle
+  AlertCircle,
+  LayoutGrid
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -92,6 +93,7 @@ export const ResizableSidebar = () => {
     { title: "History", icon: History, path: "/history", roles: ["user", "admin", "manager", "supervisor"] },
     { title: "Response Rules", icon: Shield, path: "/response-rules", roles: ["admin", "supervisor"] },
     { title: "User Activity", icon: User, path: "/user-activity", roles: ["admin", "supervisor"] },
+    { title: "Admin Dashboard", icon: LayoutGrid, path: "/admin", roles: ["admin"] },
     { title: "Settings", icon: Settings, path: "/settings", roles: ["user", "admin", "manager", "supervisor"] },
   ];
 
