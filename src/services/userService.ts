@@ -10,6 +10,7 @@ export interface User {
   department?: string;
   picture?: string;
   token?: string;
+  phoneNumber?: string; // Added phoneNumber property
 }
 
 export interface UserActivity {
