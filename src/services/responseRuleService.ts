@@ -1,3 +1,4 @@
+
 import api from "./api";
 
 // Types
@@ -16,6 +17,7 @@ export interface ResponseRule {
   lastTriggered?: string;
   conditions?: any[]; // Added for backward compatibility
   actions?: any[]; // Added for backward compatibility
+  // We don't need to add status here as it's a UI-only property
 }
 
 export interface ResponseRuleStats {
@@ -113,7 +115,7 @@ export const responseRuleService = {
   },
 
   // Update response rule
-  updateResponseRule: async (id: string, rule: Partial<ResponseRule>): Promise<ResponseRule> => {
+  updateResponseRule: async (id: string, rule: Partial<ResponseRule> & { status?: string }): Promise<ResponseRule> => {
     try {
       const token = localStorage.getItem('authToken');
       
@@ -133,9 +135,10 @@ export const responseRuleService = {
         delete apiRule.actions;
       }
       
+      // Handle status to active conversion
       if (rule.status !== undefined) {
         apiRule.active = rule.status === 'Active';
-        delete apiRule.status;
+        delete (apiRule as any).status; // Use type assertion to safely delete the status property
       }
       
       const response = await fetch(`http://localhost:7070/response-rules/${id}`, {
