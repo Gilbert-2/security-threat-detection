@@ -127,10 +127,10 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
             accept="image/*"
             onChange={handlePictureChange}
             className="hidden"
-            id="picture"
+            id="picture-upload"
           />
-          <label htmlFor="picture">
-            <Button type="button" variant="outline" size="sm" className="gap-2">
+          <label htmlFor="picture-upload">
+            <Button type="button" variant="outline" size="sm" className="cursor-pointer gap-2">
               <Upload className="h-4 w-4" />
               Upload Picture
             </Button>
