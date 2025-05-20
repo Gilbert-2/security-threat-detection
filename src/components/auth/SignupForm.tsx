@@ -75,7 +75,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
         password: data.password,
         department: data.department,
         phoneNumber: data.phoneNumber,
-        role: data.role,
+        role: data.role as "user" | "admin" | "supervisor", // Ensure correct typing
         picture: profilePicture,
       });
 

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { UserCheck, Users, Send, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { notificationService } from "@/services/notificationService";
-import { userService } from "@/services/userService";
+import { userService, User } from "@/services/userService";
 
 interface SendNotificationFormProps {
   onSuccess?: () => void;
@@ -30,9 +31,17 @@ export const SendNotificationForm = ({ onSuccess }: SendNotificationFormProps) =
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const users = await userService.getUsers();
-        setUsers(users);
-        if (users.length === 0) {
+        setLoadingUsers(true);
+        const fetchedUsers = await userService.getUsers();
+        // Map User[] to { id: string; name: string; }[] format
+        const formattedUsers = fetchedUsers.map(user => ({
+          id: user.id || "",
+          name: `${user.firstName} ${user.lastName}`
+        }));
+        setUsers(formattedUsers);
+        setLoadingUsers(false);
+        
+        if (fetchedUsers.length === 0) {
           toast({
             title: "Access Denied",
             description: "You don't have permission to view the users list.",
@@ -46,6 +55,7 @@ export const SendNotificationForm = ({ onSuccess }: SendNotificationFormProps) =
           description: "Failed to fetch users. Please try again.",
           variant: "destructive",
         });
+        setLoadingUsers(false);
       }
     };
 
