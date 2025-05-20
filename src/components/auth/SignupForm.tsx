@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -215,7 +214,11 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
           </label>
           <Select 
             defaultValue="user"
-            onValueChange={(value) => setValue("role", value)}
+            onValueChange={(value: string) => {
+              // Ensure value is cast to the correct type
+              const roleValue = value as "user" | "admin" | "supervisor";
+              setValue("role", roleValue);
+            }}
             disabled={isLoading}
           >
             <SelectTrigger>
