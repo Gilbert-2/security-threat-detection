@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -45,6 +45,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handlePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -56,6 +57,13 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
         setPreviewUrl(reader.result as string);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const triggerFileInput = () => {
+    // Programmatically click the hidden file input
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
     }
   };
 
@@ -128,13 +136,18 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
             onChange={handlePictureChange}
             className="hidden"
             id="picture-upload"
+            ref={fileInputRef}
           />
-          <label htmlFor="picture-upload">
-            <Button type="button" variant="outline" size="sm" className="cursor-pointer gap-2">
-              <Upload className="h-4 w-4" />
-              Upload Picture
-            </Button>
-          </label>
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm" 
+            className="cursor-pointer gap-2"
+            onClick={triggerFileInput}
+          >
+            <Upload className="h-4 w-4" />
+            Upload Picture
+          </Button>
         </div>
       </div>
 
