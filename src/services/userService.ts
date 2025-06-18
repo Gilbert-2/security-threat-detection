@@ -196,7 +196,7 @@ export const userService = {
   },
   
   // Get specific user's activity
-  getUserSpecificActivity: async (userId: string): Promise<UserActivity[]> => {
+  getUserSpecificActivity: async (userId: string, page: number = 1, limit: number = 5): Promise<{activities: UserActivity[], pagination: any}> => {
     try {
       const token = localStorage.getItem('authToken');
       if (!token) {
@@ -209,10 +209,10 @@ export const userService = {
       // Check if user is trying to access their own activities or is an admin
       if (currentUser.id !== userId && currentUser.role !== 'admin') {
         console.warn('User attempted to access activities of another user');
-        return []; // Return empty array instead of throwing error
+        return { activities: [], pagination: {} }; // Return empty array instead of throwing error
       }
 
-      const response = await fetch(`http://localhost:7070/user-activity/user/${userId}`, {
+      const response = await fetch(`http://localhost:7070/user-activity/user/${userId}?page=${page}&limit=${limit}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -221,16 +221,19 @@ export const userService = {
       if (!response.ok) {
         if (response.status === 404) {
           console.warn(`No activities found for user ${userId}`);
-          return [];
+          return { activities: [], pagination: {} };
         }
         throw new Error(`Failed to fetch activities: ${response.statusText}`);
       }
 
       const data = await response.json();
-      return Array.isArray(data) ? data : [];
+      return {
+        activities: Array.isArray(data.activities) ? data.activities : [],
+        pagination: data.pagination || {}
+      };
     } catch (error) {
       console.error(`Error fetching activities for user ${userId}:`, error);
-      return []; // Return empty array instead of throwing to prevent UI breakage
+      return { activities: [], pagination: {} }; // Return empty array instead of throwing to prevent UI breakage
     }
   },
   

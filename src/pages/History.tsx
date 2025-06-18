@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useState, useEffect } from "react";
-import { Search, Calendar, Clock, AlertCircle } from "lucide-react";
+import { Search, Calendar, Clock, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { userService, UserActivity } from "@/services/userService";
 import { useAuth } from "@/hooks/useAuth";
@@ -18,6 +18,9 @@ const History = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
+  const [pagination, setPagination] = useState<any>({});
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
@@ -28,7 +31,7 @@ const History = () => {
       return;
     }
     fetchUserActivities();
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, currentPage, pageSize]);
 
   const fetchUserActivities = async () => {
     try {
@@ -39,10 +42,14 @@ const History = () => {
         throw new Error('User ID not found');
       }
 
-      const activitiesData = await userService.getUserSpecificActivity(user.id);
-      setActivities(activitiesData);
+      const response = await userService.getUserSpecificActivity(user.id, currentPage, pageSize);
+      console.log('Full response from backend:', response);
+      console.log('Activities array:', response.activities);
+      console.log('Pagination data:', response.pagination);
+      setActivities(response.activities);
+      setPagination(response.pagination);
 
-      if (activitiesData.length === 0) {
+      if (response.activities.length === 0) {
         toast({
           title: "No Activities",
           description: "No activity history found for this user.",
@@ -62,6 +69,15 @@ const History = () => {
     }
   };
 
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize);
+    setCurrentPage(1); // Reset to first page when changing page size
+  };
+
   const filteredActivities = activities?.filter(activity => {
     try {
       if (!activity) return false;
@@ -72,6 +88,10 @@ const History = () => {
       return false;
     }
   }) || [];
+  
+  console.log('Original activities:', activities);
+  console.log('Filtered activities:', filteredActivities);
+  console.log('Active tab:', activeTab);
 
   const formatTimestamp = (timestamp: string | Date) => {
     try {
@@ -119,8 +139,22 @@ const History = () => {
           <div>
             <h2 className="text-2xl font-bold">Activity History</h2>
             <p className="text-muted-foreground">
-              {user?.role === 'admin' ? 'All User Activities' : 'Your Activity History'} • {activities.length} total activities
+              {user?.role === 'admin' ? 'All User Activities' : 'Your Activity History'} • {pagination.total || 0} total activities
             </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Show:</span>
+            <Select value={pageSize.toString()} onValueChange={(value) => handlePageSizeChange(parseInt(value))}>
+              <SelectTrigger className="w-20">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5">5</SelectItem>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
         
@@ -169,6 +203,51 @@ const History = () => {
                 )}
               </CardContent>
             </Card>
+            
+            {/* Pagination Controls */}
+            {pagination.totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4">
+                <div className="text-sm text-muted-foreground">
+                  Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} activities
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(pagination.page - 1)}
+                    disabled={!pagination.hasPrev}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                      const pageNum = i + 1;
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={pagination.page === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handlePageChange(pageNum)}
+                          className="w-8 h-8"
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(pagination.page + 1)}
+                    disabled={!pagination.hasNext}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
