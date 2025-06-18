@@ -37,6 +37,7 @@ export interface UserActivity {
 }
 
 export interface LogUserActivityPayload {
+  userId: string;
   type: ActivityType;
   description: string;
   metadata?: Record<string, any>;

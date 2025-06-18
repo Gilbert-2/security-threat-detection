@@ -1,4 +1,3 @@
-
 import { Header } from "@/components/Header";
 import { AlertsSummary } from "@/components/AlertsSummary";
 import { VideoFeed } from "@/components/VideoFeed";
@@ -27,9 +26,9 @@ const Index = () => {
       try {
         setLoading(true);
         await userService.logUserActivity({
+          userId: user.id,
           type: ActivityType.SYSTEM_ACCESS,
-          description: "Accessed security dashboard",
-          metadata: { userId: user.id } // Pass userId in metadata instead
+          description: "Accessed security dashboard"
         });
         setLoading(false);
       } catch (error) {
