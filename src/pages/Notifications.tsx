@@ -3,35 +3,29 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Bell, Check, Clock, Fingerprint, Shield, UserX, Trash2 } from "lucide-react";
+import { AlertCircle, Bell, Check, Clock, Fingerprint, Shield, UserX, Trash2, CheckCheck, Filter, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { notificationService } from "@/services/notificationService";
-
-interface Notification {
-  id: string;
-  title: string;
-  description: string;
-  createdAt: string;
-  read: boolean;
-  type: 'security' | 'system' | 'hardware' | 'user';
-  details: string;
-  userId: string;
-}
+import { notificationService, Notification } from "@/services/notificationService";
+import { cn } from "@/lib/utils";
 
 const NotificationItem = ({ 
   notification, 
   isSelected, 
   onClick,
-  onDelete 
+  onDelete,
+  isAdmin = false,
+  currentUserId = ''
 }: { 
   notification: Notification, 
   isSelected: boolean, 
   onClick: () => void,
-  onDelete: () => void 
+  onDelete: () => void,
+  isAdmin?: boolean,
+  currentUserId?: string
 }) => {
   const iconMap = {
     security: <Shield className="text-security-blue h-5 w-5" />,
@@ -54,6 +48,8 @@ const NotificationItem = ({
     }
   };
 
+  const isOwnNotification = currentUserId === notification.userId;
+
   return (
     <div 
       className={`p-3 border-b last:border-0 cursor-pointer flex items-start hover:bg-slate-800/50 ${isSelected ? 'bg-slate-800/50' : ''} ${!notification.read ? 'border-l-2 border-l-security-blue' : ''}`}
@@ -67,6 +63,9 @@ const NotificationItem = ({
           <h4 className="font-medium text-sm">
             {notification.title}
             {!notification.read && <span className="ml-2 text-xs text-security-blue">New</span>}
+            {isAdmin && !isOwnNotification && (
+              <span className="ml-2 text-xs text-amber-500 bg-amber-500/10 px-1 rounded">Other User</span>
+            )}
           </h4>
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground flex items-center">
@@ -87,29 +86,35 @@ const NotificationItem = ({
           </div>
         </div>
         <p className="text-xs text-muted-foreground mt-1">{notification.description}</p>
+        {isAdmin && !isOwnNotification && (
+          <p className="text-xs text-amber-500 mt-1">User ID: {notification.userId}</p>
+        )}
       </div>
     </div>
   );
 };
 
 const Notifications = () => {
-  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("all");
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
-  const isAdmin = user?.role === 'admin';
 
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/landing');
       return;
     }
+    
+    // Check if user is admin
+    setIsAdmin(notificationService.isCurrentUserAdmin());
     fetchNotifications();
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, user]);
 
   const fetchNotifications = async () => {
     try {
@@ -134,7 +139,7 @@ const Notifications = () => {
   const markAsRead = async (id: string) => {
     try {
       const token = localStorage.getItem('authToken');
-      await axios.patch(`http://localhost:7070/notifications/${id}/read`, {}, {
+      const response = await axios.patch(`http://localhost:7070/notifications/${id}/read`, {}, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -143,7 +148,15 @@ const Notifications = () => {
       setNotifications(prev => prev.map(notification => 
         notification.id === id ? { ...notification, read: true } : notification
       ));
-    } catch (err) {
+    } catch (err: any) {
+      // If notification not found (404), mark it as read locally anyway
+      if (err.response?.status === 404) {
+        setNotifications(prev => prev.map(notification => 
+          notification.id === id ? { ...notification, read: true } : notification
+        ));
+        return;
+      }
+      
       toast({
         title: "Error",
         description: "Failed to mark notification as read.",
@@ -156,7 +169,7 @@ const Notifications = () => {
   const markAllAsRead = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      await axios.patch('http://localhost:7070/notifications/read-all', {}, {
+      const response = await axios.patch('http://localhost:7070/notifications/read-all', {}, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -167,7 +180,17 @@ const Notifications = () => {
         title: "Success",
         description: "All notifications marked as read.",
       });
-    } catch (err) {
+    } catch (err: any) {
+      // If endpoint not found, mark all as read locally
+      if (err.response?.status === 404) {
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        toast({
+          title: "Success",
+          description: "All notifications marked as read.",
+        });
+        return;
+      }
+      
       toast({
         title: "Error",
         description: "Failed to mark all notifications as read.",
@@ -184,41 +207,24 @@ const Notifications = () => {
     }
   };
 
-  const deleteNotification = async (id: string) => {
+  const deleteNotification = async (id: string, userId?: string) => {
     try {
-      await notificationService.deleteNotification(id);
+      await notificationService.deleteNotification(id, userId);
       
-      // Update local state after successful deletion
+      // Remove from local state
       setNotifications(prev => prev.filter(n => n.id !== id));
-      if (selectedNotification?.id === id) {
-        setSelectedNotification(null);
-      }
       
       toast({
         title: "Success",
-        description: "Notification deleted successfully",
+        description: "Notification deleted successfully.",
       });
-    } catch (err: any) {
-      console.error('Error deleting notification:', err);
-      
-      // If the notification is not found, remove it from local state anyway
-      if (err.message?.includes('not found')) {
-        setNotifications(prev => prev.filter(n => n.id !== id));
-        if (selectedNotification?.id === id) {
-          setSelectedNotification(null);
-        }
-        toast({
-          title: "Success",
-          description: "Notification removed",
-        });
-        return;
-      }
-      
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: err.message || "Failed to delete notification",
+        description: error.message || "Failed to delete notification.",
         variant: "destructive",
       });
+      console.error('Error deleting notification:', error);
     }
   };
 
@@ -303,7 +309,9 @@ const Notifications = () => {
                       notification={notification}
                       isSelected={selectedNotification?.id === notification.id}
                       onClick={() => handleSelect(notification)}
-                      onDelete={() => deleteNotification(notification.id)}
+                      onDelete={() => deleteNotification(notification.id, notification.userId)}
+                      isAdmin={isAdmin}
+                      currentUserId={user.id}
                     />
                   ))
                 ) : (

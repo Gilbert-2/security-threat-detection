@@ -43,9 +43,6 @@ const History = () => {
       }
 
       const response = await userService.getUserSpecificActivity(user.id, currentPage, pageSize);
-      console.log('Full response from backend:', response);
-      console.log('Activities array:', response.activities);
-      console.log('Pagination data:', response.pagination);
       setActivities(response.activities);
       setPagination(response.pagination);
 
@@ -88,10 +85,6 @@ const History = () => {
       return false;
     }
   }) || [];
-  
-  console.log('Original activities:', activities);
-  console.log('Filtered activities:', filteredActivities);
-  console.log('Active tab:', activeTab);
 
   const formatTimestamp = (timestamp: string | Date) => {
     try {

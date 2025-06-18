@@ -47,21 +47,17 @@ export interface LogUserActivityPayload {
 
 export const userService = {
   // Get all users (admin only)
-  getUsers: async (): Promise<User[]> => {
+  getAllUsers: async (): Promise<User[]> => {
     try {
       const token = localStorage.getItem('authToken');
       if (!token) {
         throw new Error('Authentication token not found');
       }
 
-      // Get current user from localStorage
-      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-      console.log('Current user:', currentUser); // Debug log
-
-      // Check if user is admin
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      
       if (currentUser.role !== 'admin') {
-        console.warn('Non-admin user attempted to access users list');
-        return [];
+        throw new Error('Only admins can view all users');
       }
 
       const response = await fetch('http://localhost:7070/users', {
@@ -69,19 +65,16 @@ export const userService = {
           Authorization: `Bearer ${token}`
         }
       });
-      
+
       if (!response.ok) {
-        if (response.status === 403) {
-          console.warn('User does not have permission to access users list');
-          return [];
-        }
         throw new Error('Failed to fetch users');
       }
-      
-      return await response.json();
+
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
     } catch (error) {
-      console.error("Error fetching users:", error);
-      return []; // Return empty array instead of throwing to prevent UI breakage
+      console.error('Error fetching users:', error);
+      throw error;
     }
   },
 
@@ -172,10 +165,10 @@ export const userService = {
   },
 
   // Get user activities (admin only)
-  getUserActivities: async (limit: number = 10): Promise<UserActivity[]> => {
+  getUserActivities: async (limit: number = 10, page: number = 1): Promise<{activities: UserActivity[], pagination: any}> => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:7070/user-activity?limit=${limit}`, {
+      const response = await fetch(`http://localhost:7070/user-activity?page=${page}&limit=${limit}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -188,7 +181,11 @@ export const userService = {
         throw new Error('Failed to fetch user activities');
       }
       
-      return await response.json();
+      const data = await response.json();
+      return {
+        activities: Array.isArray(data.activities) ? data.activities : [],
+        pagination: data.pagination || {}
+      };
     } catch (error) {
       console.error("Error fetching user activities:", error);
       throw error;
@@ -204,7 +201,7 @@ export const userService = {
       }
 
       // Get current user from localStorage
-      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
       
       // Check if user is trying to access their own activities or is an admin
       if (currentUser.id !== userId && currentUser.role !== 'admin') {

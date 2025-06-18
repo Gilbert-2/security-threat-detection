@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { userService, User } from "@/services/userService";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -33,7 +32,7 @@ export const UserManagement = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const fetchedUsers = await userService.getUsers();
+      const fetchedUsers = await userService.getAllUsers();
       setUsers(fetchedUsers);
     } catch (error) {
       console.error("Error fetching users:", error);

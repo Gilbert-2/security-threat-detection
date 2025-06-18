@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { userService, UserActivity, ActivityType } from "@/services/userService";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Calendar, Clock, User, Download } from "lucide-react";
+import { Search, Calendar, Clock, User, Download, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -35,22 +35,26 @@ const UserActivityPage = () => {
   const [date, setDate] = useState<DateRange | undefined>();
   const [users, setUsers] = useState<{ id: string; name: string }[]>([]);
   const [userFilter, setUserFilter] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
+  const [pagination, setPagination] = useState<any>({});
   
   const { toast } = useToast();
 
-  // Fetch activities when component mounts
+  // Fetch activities when component mounts or pagination changes
   useEffect(() => {
     fetchActivities();
     fetchUsers();
     fetchActivityTypes();
-  }, []);
+  }, [currentPage, pageSize]);
 
   const fetchActivities = async () => {
     setLoading(true);
     try {
-      const data = await userService.getUserActivities(100); // Get more activities for admin view
-      setActivities(data);
+      const response = await userService.getUserActivities(pageSize, currentPage);
+      setActivities(response.activities);
       setError(null);
+      setPagination(response.pagination);
     } catch (err) {
       setError('Failed to fetch user activities');
       console.error('Error fetching user activities:', err);
@@ -61,7 +65,7 @@ const UserActivityPage = () => {
 
   const fetchUsers = async () => {
     try {
-      const usersData = await userService.getUsers();
+      const usersData = await userService.getAllUsers();
       setUsers(
         usersData.map(user => ({
           id: user.id!,
@@ -80,6 +84,15 @@ const UserActivityPage = () => {
     } catch (err) {
       console.error('Error fetching activity types:', err);
     }
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize);
+    setCurrentPage(1); // Reset to first page when changing page size
   };
 
   // Filter activities based on search query, type, date range and user
@@ -103,7 +116,7 @@ const UserActivityPage = () => {
     
     return matchesSearch && matchesType && matchesUser && matchesDate;
   });
-
+  
   // Format date for display
   const formatDate = (date: Date) => {
     return date.toLocaleString();
@@ -297,7 +310,7 @@ const UserActivityPage = () => {
           <CardHeader>
             <CardTitle className="text-lg">Activity Log</CardTitle>
             <CardDescription>
-              Showing {filteredActivities.length} of {activities.length} activities
+              Showing {filteredActivities.length} of {pagination.total || 0} activities
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -340,7 +353,23 @@ const UserActivityPage = () => {
                           </TableCell>
                           <TableCell>{activity.ipAddress || "N/A"}</TableCell>
                           <TableCell className="max-w-xs truncate">
-                            {activity.metadata ? JSON.stringify(activity.metadata) : "No details"}
+                            {activity.metadata ? (
+                              <div className="text-xs">
+                                {activity.metadata.userAgent && (
+                                  <div className="truncate" title={activity.metadata.userAgent}>
+                                    Browser: {activity.metadata.userAgent.split(' ')[0]}
+                                  </div>
+                                )}
+                                {activity.metadata.department && (
+                                  <div>Dept: {activity.metadata.department}</div>
+                                )}
+                                {activity.metadata.alertId && (
+                                  <div>Alert: {activity.metadata.alertId}</div>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">No details</span>
+                            )}
                           </TableCell>
                         </TableRow>
                       );
@@ -355,6 +384,65 @@ const UserActivityPage = () => {
                 </TableBody>
               </Table>
             </div>
+            
+            {/* Pagination Controls */}
+            {pagination.totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Show:</span>
+                  <Select value={pageSize.toString()} onValueChange={(value) => handlePageSizeChange(parseInt(value))}>
+                    <SelectTrigger className="w-20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5</SelectItem>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="20">20</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} activities
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(pagination.page - 1)}
+                    disabled={!pagination.hasPrev}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                      const pageNum = i + 1;
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={pagination.page === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handlePageChange(pageNum)}
+                          className="w-8 h-8"
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(pagination.page + 1)}
+                    disabled={!pagination.hasNext}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

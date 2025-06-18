@@ -57,7 +57,7 @@ export const authService = {
       console.log('Auth token stored in localStorage'); // Debug log
       
       // Store user data
-      localStorage.setItem("currentUser", JSON.stringify(data.user));
+      localStorage.setItem("user", JSON.stringify(data.user));
       console.log('User data stored in localStorage:', data.user); // Debug log
 
       return data.user;
@@ -129,12 +129,12 @@ export const authService = {
   logout: (): void => {
     console.log('Logging out user...'); // Debug log
     localStorage.removeItem("authToken");
-    localStorage.removeItem("currentUser");
+    localStorage.removeItem("user");
     console.log('Auth token and user data removed from localStorage'); // Debug log
   },
 
   getCurrentUser: (): User | null => {
-    const userStr = localStorage.getItem("currentUser");
+    const userStr = localStorage.getItem("user");
     if (!userStr) return null;
     
     try {

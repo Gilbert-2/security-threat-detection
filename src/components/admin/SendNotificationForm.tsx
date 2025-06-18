@@ -1,288 +1,590 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserCheck, Users, Send, Loader2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Bell, Users, User as UserIcon, Send, AlertCircle, Shield, Settings, UserCheck, Search, X, ChevronDown, Building } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { notificationService } from "@/services/notificationService";
 import { userService, User } from "@/services/userService";
+import { notificationService } from "@/services/notificationService";
 
-interface SendNotificationFormProps {
-  onSuccess?: () => void;
+interface CreateNotificationDto {
+  title: string;
+  description: string;
+  type: 'security' | 'system' | 'hardware' | 'user';
+  details?: string;
 }
 
-export const SendNotificationForm = ({ onSuccess }: SendNotificationFormProps) => {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [details, setDetails] = useState("");
-  const [type, setType] = useState("system");
-  const [sendMode, setSendMode] = useState<"single" | "bulk">("bulk");
-  const [selectedUser, setSelectedUser] = useState("");
-  const [users, setUsers] = useState<Array<{ id: string; name: string }>>([]);
-  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+interface CreateBulkNotificationDto {
+  notification: CreateNotificationDto;
+  userIds?: string[];
+  all?: boolean;
+}
+
+export const SendNotificationForm = () => {
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(false);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [sendToAll, setSendToAll] = useState(false);
+  const [notificationType, setNotificationType] = useState<'specific' | 'multiple' | 'all'>('specific');
+  const [formData, setFormData] = useState<CreateNotificationDto>({
+    title: '',
+    description: '',
+    type: 'system',
+    details: ''
+  });
   const { toast } = useToast();
 
-  // Fetch users when component mounts
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        setLoadingUsers(true);
-        const fetchedUsers = await userService.getUsers();
-        // Map User[] to { id: string; name: string; }[] format
-        const formattedUsers = fetchedUsers.map(user => ({
-          id: user.id || "",
-          name: `${user.firstName} ${user.lastName}`
-        }));
-        setUsers(formattedUsers);
-        setLoadingUsers(false);
-        
-        if (fetchedUsers.length === 0) {
-          toast({
-            title: "Access Denied",
-            description: "You don't have permission to view the users list.",
-            variant: "destructive",
-          });
-        }
-      } catch (error) {
-        console.error("Error fetching users:", error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch users. Please try again.",
-          variant: "destructive",
-        });
-        setLoadingUsers(false);
-      }
-    };
-
     fetchUsers();
-  }, [toast]);
+  }, []);
 
-  const handleSendNotification = async () => {
-    if (!title || !description) {
+  const fetchUsers = async () => {
+    try {
+      setLoadingUsers(true);
+      const fetchedUsers = await userService.getAllUsers();
+      setUsers(fetchedUsers);
+    } catch (error) {
+      console.error('Error fetching users:', error);
       toast({
-        title: "Missing fields",
-        description: "Please fill in all required fields",
-        variant: "destructive"
+        title: "Error",
+        description: "Failed to fetch users.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  const handleUserToggle = (userId: string) => {
+    setSelectedUsers(prev => 
+      prev.includes(userId) 
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    );
+  };
+
+  const handleSendToAllToggle = () => {
+    setSendToAll(!sendToAll);
+    if (!sendToAll) {
+      setSelectedUsers([]);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.title.trim() || !formData.description.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
       });
       return;
     }
 
-    const notificationData = {
-      title,
-      description,
-      type,
-      details
-    };
+    if (notificationType === 'specific' && selectedUsers.length === 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please select at least one user.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (notificationType === 'multiple' && selectedUsers.length === 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please select at least one user.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
 
     try {
-      setIsLoading(true);
-
-      if (sendMode === "single") {
-        if (!selectedUser) {
-          toast({
-            title: "Missing user",
-            description: "Please select a user to send the notification to",
-            variant: "destructive"
-          });
-          return;
-        }
-
-        await notificationService.sendNotificationToUser(selectedUser, notificationData);
+      let response;
+      
+      if (notificationType === 'specific' && selectedUsers.length === 1) {
+        // Send to specific user
+        response = await notificationService.sendNotificationToUser(
+          selectedUsers[0], 
+          formData
+        );
         toast({
           title: "Success",
-          description: "Notification sent successfully to the selected user"
+          description: `Notification sent to user successfully.`,
         });
-      } else {
+      } else if (notificationType === 'multiple' || (notificationType === 'specific' && selectedUsers.length > 1)) {
+        // Send to multiple users
+        const bulkData: CreateBulkNotificationDto = {
+          notification: formData,
+          userIds: selectedUsers,
+          all: false
+        };
+        response = await notificationService.sendBulkNotifications(selectedUsers, formData);
+        toast({
+          title: "Success",
+          description: `Notification sent to ${response.count} users successfully.`,
+        });
+      } else if (notificationType === 'all' || sendToAll) {
         // Send to all users
-        await notificationService.sendBulkNotifications(selectedUserIds.length ? selectedUserIds : users.map(u => u.id), notificationData);
+        const bulkData: CreateBulkNotificationDto = {
+          notification: formData,
+          all: true
+        };
+        response = await notificationService.sendBulkNotifications([], formData, true);
         toast({
           title: "Success",
-          description: `Notification sent to ${selectedUserIds.length ? selectedUserIds.length : "all"} users`
+          description: `Notification sent to all ${response.count} users successfully.`,
         });
       }
 
-      // Reset form after successful submission
-      setTitle("");
-      setDescription("");
-      setDetails("");
-      setType("system");
-      setSelectedUser("");
-      setSelectedUserIds([]);
+      // Reset form
+      setFormData({
+        title: '',
+        description: '',
+        type: 'system',
+        details: ''
+      });
+      setSelectedUsers([]);
+      setSendToAll(false);
+      setNotificationType('specific');
 
-      if (onSuccess) {
-        onSuccess();
-      }
-    } catch (error) {
-      console.error("Error sending notification:", error);
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to send notification",
-        variant: "destructive"
+        description: error.message || "Failed to send notification.",
+        variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
+    }
+  };
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'security':
+        return <Shield className="h-4 w-4 text-security-blue" />;
+      case 'system':
+        return <Settings className="h-4 w-4 text-amber-500" />;
+      case 'hardware':
+        return <AlertCircle className="h-4 w-4 text-security-red" />;
+      case 'user':
+        return <UserCheck className="h-4 w-4 text-purple-500" />;
+      default:
+        return <Bell className="h-4 w-4" />;
+    }
+  };
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'security':
+        return 'text-security-blue bg-security-blue/10';
+      case 'system':
+        return 'text-amber-500 bg-amber-500/10';
+      case 'hardware':
+        return 'text-security-red bg-security-red/10';
+      case 'user':
+        return 'text-purple-500 bg-purple-500/10';
+      default:
+        return 'text-gray-500 bg-gray-500/10';
     }
   };
 
   return (
-    <Card className="w-full shadow-md">
-      <CardHeader>
-        <CardTitle>Send Notification</CardTitle>
-        <CardDescription>
-          Send a notification to one or multiple users
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {users.length === 0 ? (
-          <div className="text-center p-4 bg-muted rounded-lg">
-            <p className="text-muted-foreground">
-              Only administrators can send notifications to users.
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="space-y-2">
-              <div className="flex space-x-2">
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bell className="h-5 w-5 text-security-blue" />
+            Send Notification
+          </CardTitle>
+          <CardDescription>
+            Create and send notifications to users in the system
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Notification Type Selection */}
+            <div className="space-y-4">
+              <Label className="text-base font-medium">Notification Type</Label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Button
-                  variant={sendMode === "bulk" ? "default" : "outline"}
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => setSendMode("bulk")}
+                  type="button"
+                  variant={notificationType === 'specific' ? 'default' : 'outline'}
+                  className="h-auto p-4 flex flex-col items-center gap-2"
+                  onClick={() => setNotificationType('specific')}
                 >
-                  <Users className="h-4 w-4 mr-2" />
-                  Multiple Users
+                  <UserIcon className="h-5 w-5" />
+                  <span>Specific User</span>
+                  <span className="text-xs text-muted-foreground">Send to one user</span>
                 </Button>
                 <Button
-                  variant={sendMode === "single" ? "default" : "outline"}
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => setSendMode("single")}
+                  type="button"
+                  variant={notificationType === 'multiple' ? 'default' : 'outline'}
+                  className="h-auto p-4 flex flex-col items-center gap-2"
+                  onClick={() => setNotificationType('multiple')}
                 >
-                  <UserCheck className="h-4 w-4 mr-2" />
-                  Single User
+                  <Users className="h-5 w-5" />
+                  <span>Multiple Users</span>
+                  <span className="text-xs text-muted-foreground">Send to selected users</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant={notificationType === 'all' ? 'default' : 'outline'}
+                  className="h-auto p-4 flex flex-col items-center gap-2"
+                  onClick={() => setNotificationType('all')}
+                >
+                  <Bell className="h-5 w-5" />
+                  <span>All Users</span>
+                  <span className="text-xs text-muted-foreground">Send to everyone</span>
                 </Button>
               </div>
             </div>
 
-            {sendMode === "single" ? (
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Select User</label>
-                <Select value={selectedUser} onValueChange={setSelectedUser}>
+            <Separator />
+
+            {/* Notification Details */}
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="title">Title *</Label>
+                <Input
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="Enter notification title"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="description">Description *</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Enter notification description"
+                  rows={3}
+                  required
+                  className="resize-none"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="type">Type *</Label>
+                <Select
+                  value={formData.type}
+                  onValueChange={(value: 'security' | 'system' | 'hardware' | 'user') => 
+                    setFormData(prev => ({ ...prev, type: value }))
+                  }
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a user" />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {loadingUsers ? (
-                      <div className="flex justify-center p-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                    <SelectItem value="security">
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-4 w-4 text-security-blue" />
+                        Security
                       </div>
-                    ) : (
-                      users.map(user => (
-                        <SelectItem key={user.id} value={user.id}>
-                          {user.name}
-                        </SelectItem>
-                      ))
-                    )}
+                    </SelectItem>
+                    <SelectItem value="system">
+                      <div className="flex items-center gap-2">
+                        <Settings className="h-4 w-4 text-amber-500" />
+                        System
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="hardware">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4 text-security-red" />
+                        Hardware
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="user">
+                      <div className="flex items-center gap-2">
+                        <UserCheck className="h-4 w-4 text-purple-500" />
+                        User
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            ) : (
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Select Users (leave empty for all)</label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder={selectedUserIds.length ? `${selectedUserIds.length} users selected` : "All users"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <div className="p-2">
-                      <p className="text-xs text-muted-foreground mb-2">
-                        This feature will be implemented in a future update
-                      </p>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full"
-                        onClick={() => setSelectedUserIds([])}
-                      >
-                        Select All Users
-                      </Button>
+
+              <div>
+                <Label htmlFor="details">Details (Optional)</Label>
+                <Textarea
+                  id="details"
+                  value={formData.details}
+                  onChange={(e) => setFormData(prev => ({ ...prev, details: e.target.value }))}
+                  placeholder="Enter additional details"
+                  rows={3}
+                  className="resize-none"
+                />
+              </div>
+            </div>
+
+            {/* User Selection */}
+            {(notificationType === 'specific' || notificationType === 'multiple') && (
+              <>
+                <Separator />
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-base font-medium">Select Users</Label>
+                    {loadingUsers && <span className="text-sm text-muted-foreground">Loading users...</span>}
+                  </div>
+                  
+                  {/* User Search and Selection */}
+                  <div className="space-y-3">
+                    <div className="relative">
+                      <Input
+                        placeholder="Search users by name, email, or department..."
+                        className="pr-10"
+                        onChange={(e) => {
+                          const searchTerm = e.target.value.toLowerCase();
+                          // Filter users based on search term
+                          const filtered = users.filter(user => 
+                            user.firstName?.toLowerCase().includes(searchTerm) ||
+                            user.lastName?.toLowerCase().includes(searchTerm) ||
+                            user.email?.toLowerCase().includes(searchTerm) ||
+                            user.department?.toLowerCase().includes(searchTerm)
+                          );
+                          // Show filtered results in dropdown
+                        }}
+                      />
+                      <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     </div>
-                  </SelectContent>
-                </Select>
-              </div>
+                    
+                    {/* Selected Users Display */}
+                    {selectedUsers.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Selected Users ({selectedUsers.length})</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedUsers.map(userId => {
+                            const user = users.find(u => u.id === userId);
+                            if (!user) return null;
+                            return (
+                              <div
+                                key={userId}
+                                className="flex items-center gap-2 bg-slate-800/50 rounded-lg px-3 py-2 text-sm"
+                              >
+                                <div className="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-xs font-medium">
+                                  {user.firstName?.[0]}{user.lastName?.[0]}
+                                </div>
+                                <span className="font-medium">
+                                  {user.firstName} {user.lastName}
+                                </span>
+                                <Badge variant="outline" className="text-xs">
+                                  {user.role}
+                                </Badge>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-4 w-4 p-0 hover:bg-red-500/10 hover:text-red-500"
+                                  onClick={() => handleUserToggle(userId)}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Quick Selection Options */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Quick Selection</Label>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const adminUsers = users.filter(u => u.role === 'admin').map(u => u.id || '');
+                            setSelectedUsers(adminUsers);
+                          }}
+                          className="text-xs"
+                        >
+                          <Shield className="h-3 w-3 mr-1" />
+                          All Admins
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const itUsers = users.filter(u => u.department === 'IT').map(u => u.id || '');
+                            setSelectedUsers(itUsers);
+                          }}
+                          className="text-xs"
+                        >
+                          <Building className="h-3 w-3 mr-1" />
+                          IT Department
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const securityUsers = users.filter(u => u.department === 'Security').map(u => u.id || '');
+                            setSelectedUsers(securityUsers);
+                          }}
+                          className="text-xs"
+                        >
+                          <Shield className="h-3 w-3 mr-1" />
+                          Security Team
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedUsers([])}
+                          className="text-xs"
+                        >
+                          Clear All
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    {/* User List (Collapsible) */}
+                    <div className="space-y-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-between"
+                        onClick={() => {
+                          const userListElement = document.getElementById('user-list');
+                          if (userListElement) {
+                            userListElement.classList.toggle('hidden');
+                          }
+                        }}
+                      >
+                        <span>Show All Users ({users.length})</span>
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+                      
+                      <div id="user-list" className="hidden max-h-60 overflow-y-auto border rounded-md p-4 space-y-2">
+                        {users.map((user) => (
+                          <div
+                            key={user.id}
+                            className="flex items-center space-x-3 p-2 rounded-md hover:bg-slate-800/50"
+                          >
+                            <Checkbox
+                              id={user.id}
+                              checked={selectedUsers.includes(user.id || '')}
+                              onCheckedChange={() => handleUserToggle(user.id || '')}
+                            />
+                            <Label
+                              htmlFor={user.id}
+                              className="flex-1 cursor-pointer flex items-center justify-between"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-sm font-medium">
+                                  {user.firstName?.[0]}{user.lastName?.[0]}
+                                </div>
+                                <div>
+                                  <div className="font-medium">
+                                    {user.firstName} {user.lastName}
+                                  </div>
+                                  <div className="text-sm text-muted-foreground">
+                                    {user.email} • {user.department || 'No department'}
+                                  </div>
+                                </div>
+                              </div>
+                              <Badge variant="outline" className="text-xs">
+                                {user.role}
+                              </Badge>
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </>
             )}
 
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Notification Type</label>
-              <Select value={type} onValueChange={setType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select notification type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="system">System</SelectItem>
-                  <SelectItem value="security">Security</SelectItem>
-                  <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="hardware">Hardware</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {/* All Users Option */}
+            {notificationType === 'all' && (
+              <>
+                <Separator />
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-3 p-4 border rounded-md bg-slate-800/20">
+                    <Checkbox
+                      id="sendToAll"
+                      checked={sendToAll}
+                      onCheckedChange={handleSendToAllToggle}
+                    />
+                    <Label htmlFor="sendToAll" className="flex items-center gap-2 cursor-pointer">
+                      <Bell className="h-4 w-4 text-security-blue" />
+                      Send to all {users.length} users in the system
+                    </Label>
+                  </div>
+                </div>
+              </>
+            )}
 
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Title*</label>
-              <Input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Notification title"
-                required
-              />
-            </div>
+            {/* Preview */}
+            {(formData.title || formData.description) && (
+              <>
+                <Separator />
+                <div className="space-y-4">
+                  <Label className="text-base font-medium">Preview</Label>
+                  <Card className="bg-slate-800/20">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        {getTypeIcon(formData.type)}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h4 className="font-medium">{formData.title || 'Notification Title'}</h4>
+                            <Badge className={getTypeColor(formData.type)}>
+                              {formData.type.toUpperCase()}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-2">
+                            {formData.description || 'Notification description will appear here...'}
+                          </p>
+                          {formData.details && (
+                            <div className="text-xs text-muted-foreground bg-slate-900/50 p-2 rounded">
+                              {formData.details}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </>
+            )}
 
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Description*</label>
-              <Textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Short description of the notification"
-                required
-              />
-            </div>
+            <Separator />
 
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Details (Optional)</label>
-              <Textarea
-                value={details}
-                onChange={(e) => setDetails(e.target.value)}
-                placeholder="Additional details or information"
-                rows={4}
-              />
-            </div>
-          </>
-        )}
-      </CardContent>
-      <CardFooter>
-        <Button 
-          className="w-full" 
-          onClick={handleSendNotification}
-          disabled={isLoading || users.length === 0}
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Sending...
-            </>
-          ) : (
-            <>
-              <Send className="mr-2 h-4 w-4" />
-              Send Notification
-            </>
-          )}
-        </Button>
-      </CardFooter>
-    </Card>
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full gap-2"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4" />
+                  Send Notification
+                </>
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 };

@@ -31,7 +31,7 @@ const Profile = () => {
           if (token) {
             const userData = await userService.getCurrentUser();
             if (userData) {
-              localStorage.setItem("currentUser", JSON.stringify(userData));
+              localStorage.setItem("user", JSON.stringify(userData));
             }
           } else {
             setError('Authentication token not found');
@@ -55,8 +55,8 @@ const Profile = () => {
       if (user?.id) {
         try {
           setActivityLoading(true);
-          const activities = await userService.getUserSpecificActivity(user.id);
-          setUserActivities(activities);
+          const result = await userService.getUserSpecificActivity(user.id);
+          setUserActivities(result.activities);
         } catch (err) {
           console.error("Failed to fetch user activities:", err);
         } finally {

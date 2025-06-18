@@ -57,7 +57,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               }
               
               setUser(userData);
-              localStorage.setItem("currentUser", JSON.stringify(userData));
+              localStorage.setItem("user", JSON.stringify(userData));
             } else {
               console.error('Profile fetch failed:', response.status); // Debug log
               // Invalid token or other error

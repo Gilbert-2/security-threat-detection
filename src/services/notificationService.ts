@@ -10,6 +10,17 @@ export interface Notification {
 }
 
 export const notificationService = {
+  // Check if current user is admin
+  isCurrentUserAdmin: (): boolean => {
+    try {
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      return currentUser.role === 'admin';
+    } catch (error) {
+      console.error('Error checking user role:', error);
+      return false;
+    }
+  },
+
   // Get notifications based on user role
   getNotifications: async (): Promise<Notification[]> => {
     try {
@@ -18,7 +29,23 @@ export const notificationService = {
         throw new Error('Authentication token not found');
       }
 
-      const response = await fetch('http://localhost:7070/notifications', {
+      // Get current user to determine role
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const isAdmin = currentUser.role === 'admin';
+
+      // Use different endpoints based on user role
+      let endpoint;
+      if (isAdmin) {
+        endpoint = 'http://localhost:7070/notifications'; // Admin gets all notifications
+      } else {
+        if (!currentUser.id) {
+          console.warn('User ID not found, cannot fetch user-specific notifications');
+          return [];
+        }
+        endpoint = `http://localhost:7070/notifications/user/${currentUser.id}`; // User gets their own notifications
+      }
+
+      const response = await fetch(endpoint, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -118,19 +145,25 @@ export const notificationService = {
   },
 
   // Send bulk notifications (admin only)
-  sendBulkNotifications: async (userIds: string[], notification: { title: string; description: string; type: string; details?: string }): Promise<{ count: number }> => {
+  sendBulkNotifications: async (userIds: string[], notification: { title: string; description: string; type: string; details?: string }, sendToAll: boolean = false): Promise<{ count: number; message: string }> => {
     try {
       const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
+      const payload = {
+        notification,
+        ...(sendToAll ? { all: true } : { userIds })
+      };
+
       const response = await fetch('http://localhost:7070/users/notifications/bulk', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({
-          userIds,
-          notification
-        })
+        body: JSON.stringify(payload)
       });
       
       if (!response.ok) {
@@ -145,43 +178,41 @@ export const notificationService = {
   },
 
   // Delete a notification
-  deleteNotification: async (id: string): Promise<void> => {
+  deleteNotification: async (id: string, userId?: string): Promise<void> => {
     try {
       const token = localStorage.getItem('authToken');
       if (!token) {
         throw new Error('Authentication token not found');
       }
 
-      // First verify if the notification exists
-      const verifyResponse = await fetch(`http://localhost:7070/notifications/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      // Get current user info to check permissions
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const isAdmin = currentUser.role === 'admin';
 
-      if (!verifyResponse.ok) {
-        if (verifyResponse.status === 404) {
-          // If notification doesn't exist, consider it already deleted
-          console.warn(`Notification ${id} not found, considering it already deleted`);
-          return;
-        }
-        throw new Error(`Failed to verify notification: ${verifyResponse.statusText}`);
+      // For non-admin users, ensure they can only delete their own notifications
+      if (!isAdmin && userId && currentUser.id !== userId) {
+        throw new Error('You can only delete your own notifications');
       }
 
-      // If notification exists, proceed with deletion
       const response = await fetch(`http://localhost:7070/notifications/${id}`, {
         method: 'DELETE',
         headers: {
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
       
+      // If notification doesn't exist (404), consider deletion successful
+      if (response.status === 404) {
+        return;
+      }
+
+      // Handle permission errors
+      if (response.status === 403) {
+        throw new Error('You do not have permission to delete this notification');
+      }
+      
       if (!response.ok) {
-        if (response.status === 404) {
-          // If notification doesn't exist during deletion, consider it already deleted
-          console.warn(`Notification ${id} not found during deletion, considering it already deleted`);
-          return;
-        }
         throw new Error(`Failed to delete notification: ${response.statusText}`);
       }
     } catch (error) {
