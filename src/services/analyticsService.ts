@@ -1,4 +1,3 @@
-
 import api from "./api";
 
 export interface AnalyticsData {
@@ -38,57 +37,89 @@ const generateMockAnalytics = (): AnalyticsData[] => {
 const mockAnalyticsData = generateMockAnalytics();
 
 export const analyticsService = {
-  // Get analytics for a date range
+  // Get analytics for a date range or all analytics if no dates are provided
   getAnalytics: async (startDate?: string, endDate?: string): Promise<AnalyticsData[]> => {
-    // const params = new URLSearchParams();
-    // if (startDate) params.append('startDate', startDate);
-    // if (endDate) params.append('endDate', endDate);
-    // const response = await api.get<AnalyticsData[]>(`/analytics?${params}`);
-    // return response.data;
-    
-    return Promise.resolve(mockAnalyticsData);
+    try {
+      let url = 'http://localhost:7070/analytics';
+      const params = new URLSearchParams();
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const isAdmin = currentUser.role === 'admin';
+      if (!isAdmin && currentUser.id) {
+        params.append('userId', currentUser.id);
+      }
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
+      if (params.toString()) {
+        url += `?${params}`;
+      }
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+      });
+      if (!response.ok) throw new Error('Failed to fetch analytics data');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+      throw error;
+    }
   },
 
   // Get analytics summary
   getAnalyticsSummary: async (): Promise<AnalyticsSummary> => {
-    // const response = await api.get<AnalyticsSummary>("/analytics/summary");
-    // return response.data;
-    
-    const totalAlerts = mockAnalyticsData.reduce((sum, day) => sum + day.alertsCount, 0);
-    const totalResponses = mockAnalyticsData.reduce((sum, day) => sum + day.responsesTriggered, 0);
-    const averageResponseTime = mockAnalyticsData.reduce((sum, day) => sum + day.averageResponseTime, 0) / mockAnalyticsData.length;
-    
-    return Promise.resolve({
-      totalAlerts,
-      totalResponses,
-      averageResponseTime,
-      trendByDay: mockAnalyticsData
-    });
+    try {
+      let url = 'http://localhost:7070/analytics/summary';
+      const params = new URLSearchParams();
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const isAdmin = currentUser.role === 'admin';
+      if (!isAdmin && currentUser.id) {
+        params.append('userId', currentUser.id);
+      }
+      if (params.toString()) {
+        url += `?${params}`;
+      }
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+      });
+      if (!response.ok) throw new Error('Failed to fetch analytics summary');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching analytics summary:', error);
+      throw error;
+    }
   },
 
   // Get analytics for specific metrics
   getMetricsData: async (metric: string): Promise<any> => {
-    // const response = await api.get<any>(`/analytics/metrics/${metric}`);
-    // return response.data;
-    
-    console.log(`Getting data for metric: ${metric}`);
-    
-    // Return appropriate mock data based on the metric
-    switch (metric) {
-      case "alerts":
-        return Promise.resolve({
-          data: mockAnalyticsData.map(day => ({ date: day.date, value: day.alertsCount }))
-        });
-      case "responses":
-        return Promise.resolve({
-          data: mockAnalyticsData.map(day => ({ date: day.date, value: day.responsesTriggered }))
-        });
-      case "responseTime":
-        return Promise.resolve({
-          data: mockAnalyticsData.map(day => ({ date: day.date, value: day.averageResponseTime }))
-        });
-      default:
-        return Promise.resolve({ data: [] });
+    try {
+      let url = `http://localhost:7070/analytics/metrics/${metric}`;
+      const params = new URLSearchParams();
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const isAdmin = currentUser.role === 'admin';
+      if (!isAdmin && currentUser.id) {
+        params.append('userId', currentUser.id);
+      }
+      if (params.toString()) {
+        url += `?${params}`;
+      }
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+      });
+      if (!response.ok) throw new Error('Failed to fetch metrics data');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching metrics data:', error);
+      throw error;
     }
-  }
+  },
 };
