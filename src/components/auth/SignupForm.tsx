@@ -16,9 +16,9 @@ const signupSchema = z.object({
   email: z.string().email("Please enter a valid email"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   confirmPassword: z.string(),
-  department: z.string().optional(),
-  phoneNumber: z.string().optional(),
-  role: z.enum(["user", "admin", "supervisor"], {
+  department: z.string().min(1, "Department is required"),
+  phoneNumber: z.string().regex(/^\+[1-9]\d{1,14}$/, "Phone number must be a valid international format (e.g., +1234567890)"),
+  role: z.enum(["user", "admin", "supervisor", "manager"], {
     required_error: "Please select a role",
   }),
   picture: z.any().optional(),
@@ -82,7 +82,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
         password: data.password,
         department: data.department,
         phoneNumber: data.phoneNumber,
-        role: data.role as "user" | "admin" | "supervisor", // Ensure correct typing
+        role: data.role as "user" | "admin" | "supervisor" | "manager", // Ensure correct typing
         picture: profilePicture,
       });
 
@@ -229,7 +229,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
             defaultValue="user"
             onValueChange={(value: string) => {
               // Ensure value is cast to the correct type
-              const roleValue = value as "user" | "admin" | "supervisor";
+              const roleValue = value as "user" | "admin" | "supervisor" | "manager";
               setValue("role", roleValue);
             }}
             disabled={isLoading}
@@ -241,6 +241,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
               <SelectItem value="user">User</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
               <SelectItem value="supervisor">Supervisor</SelectItem>
+              <SelectItem value="manager">Manager</SelectItem>
             </SelectContent>
           </Select>
           {errors.role && (
@@ -251,7 +252,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
 
       <div className="space-y-2">
         <label htmlFor="phoneNumber" className="text-sm font-medium">
-          Phone Number (optional)
+          Phone Number
         </label>
         <Input
           id="phoneNumber"
