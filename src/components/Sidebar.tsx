@@ -1,11 +1,10 @@
-
 import { Outlet } from "react-router-dom";
-import { ResizableSidebar } from "./ResizableSidebar";
+import { Sidebar as ResponsiveSidebar } from "./ui/sidebar";
 
 export function Sidebar() {
   return (
     <div className="flex flex-1 h-screen overflow-hidden">
-      <ResizableSidebar />
+      <ResponsiveSidebar />
       <main className="flex-1 overflow-auto">
         <Outlet />
       </main>

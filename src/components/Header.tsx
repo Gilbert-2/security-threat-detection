@@ -59,15 +59,15 @@ export const Header = () => {
   };
 
   return (
-    <header className="border-b">
-      <div className="flex h-16 items-center px-4">
-        <div className="flex items-center gap-4">
-          <Link to="/" className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-security-blue" />
-            <span className="font-semibold">Security Threat Detection</span>
+    <header className="border-b w-full">
+      <div className="flex flex-col sm:flex-row sm:h-16 items-center px-2 sm:px-4 py-2 sm:py-0 gap-2 sm:gap-0 w-full">
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
+          <Link to="/" className="flex items-center gap-2 min-w-0">
+            <Shield className="h-6 w-6 text-security-blue flex-shrink-0" />
+            <span className="font-semibold truncate text-base sm:text-lg">Security Threat Detection</span>
           </Link>
         </div>
-        <div className="ml-auto flex items-center gap-4">
+        <div className="flex w-full sm:w-auto justify-end sm:ml-auto items-center gap-2 sm:gap-4">
           {isAuthenticated && (
             <>
               <Link to="/notifications" className="relative">
