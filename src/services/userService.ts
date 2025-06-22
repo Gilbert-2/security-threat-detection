@@ -1,5 +1,7 @@
 import api from "./api";
 
+const API_URL = "https://security-threat-backend.onrender.com";
+
 export interface User {
   id?: string;
   email: string;
@@ -60,7 +62,7 @@ export const userService = {
         throw new Error('Only admins can view all users');
       }
 
-      const response = await fetch('http://localhost:7070/users', {
+      const response = await fetch(`${API_URL}/users`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -82,7 +84,7 @@ export const userService = {
   getUserById: async (id: string): Promise<User | undefined> => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:7070/users/${id}`, {
+      const response = await fetch(`${API_URL}/users/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -103,7 +105,7 @@ export const userService = {
   deleteUser: async (id: string): Promise<void> => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:7070/users/${id}`, {
+      const response = await fetch(`${API_URL}/users/${id}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`
@@ -123,7 +125,7 @@ export const userService = {
   getCurrentUser: async (): Promise<User> => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:7070/users/profile', {
+      const response = await fetch(`${API_URL}/users/profile`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -144,7 +146,7 @@ export const userService = {
   updateUserProfile: async (id: string, userData: Partial<User>): Promise<User> => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:7070/users/${id}`, {
+      const response = await fetch(`${API_URL}/users/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -168,7 +170,7 @@ export const userService = {
   getUserActivities: async (limit: number = 10, page: number = 1): Promise<{activities: UserActivity[], pagination: any}> => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:7070/user-activity?page=${page}&limit=${limit}`, {
+      const response = await fetch(`${API_URL}/user-activity?page=${page}&limit=${limit}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -209,7 +211,7 @@ export const userService = {
         return { activities: [], pagination: {} }; // Return empty array instead of throwing error
       }
 
-      const response = await fetch(`http://localhost:7070/user-activity/user/${userId}?page=${page}&limit=${limit}`, {
+      const response = await fetch(`${API_URL}/user-activity/user/${userId}?page=${page}&limit=${limit}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -238,7 +240,7 @@ export const userService = {
   getActivitySummary: async (): Promise<Record<string, any>> => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:7070/user-activity/summary', {
+      const response = await fetch(`${API_URL}/user-activity/summary`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -262,7 +264,7 @@ export const userService = {
   getActivityTypeStats: async (): Promise<Record<ActivityType, number>> => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:7070/user-activity/types', {
+      const response = await fetch(`${API_URL}/user-activity/types`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -286,7 +288,7 @@ export const userService = {
   logUserActivity: async (activity: LogUserActivityPayload): Promise<UserActivity> => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:7070/user-activity', {
+      const response = await fetch(`${API_URL}/user-activity`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

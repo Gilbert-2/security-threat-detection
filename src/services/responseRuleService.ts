@@ -1,4 +1,3 @@
-
 import api from "./api";
 
 // Types
@@ -34,12 +33,14 @@ export interface ResponseRuleStats {
   activePercentage: number;
 }
 
+const API_URL = "https://security-threat-backend.onrender.com";
+
 export const responseRuleService = {
   // Get all response rules
   getResponseRules: async (): Promise<ResponseRule[]> => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:7070/response-rules', {
+      const response = await fetch(`${API_URL}/response-rules`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -60,7 +61,7 @@ export const responseRuleService = {
   getResponseRuleById: async (id: string): Promise<ResponseRule> => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:7070/response-rules/${id}`, {
+      const response = await fetch(`${API_URL}/response-rules/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -94,7 +95,7 @@ export const responseRuleService = {
         createdBy: rule.createdBy || localStorage.getItem('userId') || 'admin'
       };
       
-      const response = await fetch('http://localhost:7070/response-rules', {
+      const response = await fetch(`${API_URL}/response-rules`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -141,7 +142,7 @@ export const responseRuleService = {
         delete (apiRule as any).status; // Use type assertion to safely delete the status property
       }
       
-      const response = await fetch(`http://localhost:7070/response-rules/${id}`, {
+      const response = await fetch(`${API_URL}/response-rules/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -165,7 +166,7 @@ export const responseRuleService = {
   deleteResponseRule: async (id: string): Promise<void> => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:7070/response-rules/${id}`, {
+      const response = await fetch(`${API_URL}/response-rules/${id}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`
@@ -185,7 +186,7 @@ export const responseRuleService = {
   activateRule: async (id: string): Promise<ResponseRule> => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:7070/response-rules/${id}/activate`, {
+      const response = await fetch(`${API_URL}/response-rules/${id}/activate`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`
@@ -207,7 +208,7 @@ export const responseRuleService = {
   deactivateRule: async (id: string): Promise<ResponseRule> => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:7070/response-rules/${id}/deactivate`, {
+      const response = await fetch(`${API_URL}/response-rules/${id}/deactivate`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`
@@ -229,7 +230,7 @@ export const responseRuleService = {
   getResponseStats: async (): Promise<ResponseRuleStats> => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:7070/response-rules/stats', {
+      const response = await fetch(`${API_URL}/response-rules/stats`, {
         headers: {
           Authorization: `Bearer ${token}`
         }

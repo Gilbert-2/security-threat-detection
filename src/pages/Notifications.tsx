@@ -12,6 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { notificationService, Notification } from "@/services/notificationService";
 import { cn } from "@/lib/utils";
 
+const API_URL = "https://security-threat-backend.onrender.com";
+
 const NotificationItem = ({ 
   notification, 
   isSelected, 
@@ -139,7 +141,7 @@ const Notifications = () => {
   const markAsRead = async (id: string) => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await axios.patch(`http://localhost:7070/notifications/${id}/read`, {}, {
+      const response = await axios.patch(`${API_URL}/notifications/${id}/read`, {}, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -169,7 +171,7 @@ const Notifications = () => {
   const markAllAsRead = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await axios.patch('http://localhost:7070/notifications/read-all', {}, {
+      const response = await axios.patch(`${API_URL}/notifications/read-all`, {}, {
         headers: {
           Authorization: `Bearer ${token}`
         }

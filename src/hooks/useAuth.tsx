@@ -25,6 +25,8 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+const API_URL = "https://security-threat-backend.onrender.com";
+
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,7 +42,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           // Always fetch fresh user data from the server
           try {
             console.log('Fetching user profile...'); // Debug log
-            const response = await fetch("http://localhost:7070/users/profile", {
+            const response = await fetch(`${API_URL}/users/profile`, {
               headers: {
                 Authorization: `Bearer ${token}`
               }

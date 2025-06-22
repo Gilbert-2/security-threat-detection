@@ -18,7 +18,7 @@ export interface SignupRequest {
   picture?: any; // Use any type for picture as it could be File or string
 }
 
-const API_URL = "http://localhost:7070";
+const API_URL = "https://security-threat-backend.onrender.com";
 
 export const authService = {
   login: async (credentials: LoginRequest): Promise<User> => {

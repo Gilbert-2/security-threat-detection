@@ -9,6 +9,8 @@ export interface Notification {
   userId: string;
 }
 
+const API_URL = "https://security-threat-backend.onrender.com";
+
 export const notificationService = {
   // Check if current user is admin
   isCurrentUserAdmin: (): boolean => {
@@ -36,13 +38,13 @@ export const notificationService = {
       // Use different endpoints based on user role
       let endpoint;
       if (isAdmin) {
-        endpoint = 'http://localhost:7070/notifications'; // Admin gets all notifications
+        endpoint = `${API_URL}/notifications`; // Admin gets all notifications
       } else {
         if (!currentUser.id) {
           console.warn('User ID not found, cannot fetch user-specific notifications');
           return [];
         }
-        endpoint = `http://localhost:7070/notifications/user/${currentUser.id}`; // User gets their own notifications
+        endpoint = `${API_URL}/notifications/user/${currentUser.id}`; // User gets their own notifications
       }
 
       const response = await fetch(endpoint, {
@@ -82,7 +84,7 @@ export const notificationService = {
   markAsRead: async (id: string): Promise<Notification> => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:7070/notifications/${id}/read`, {
+      const response = await fetch(`${API_URL}/notifications/${id}/read`, {
         method: 'PATCH',
         headers: {
           Authorization: `Bearer ${token}`
@@ -104,7 +106,7 @@ export const notificationService = {
   markAllAsRead: async (): Promise<void> => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:7070/notifications/read-all', {
+      const response = await fetch(`${API_URL}/notifications/read-all`, {
         method: 'PATCH',
         headers: {
           Authorization: `Bearer ${token}`
@@ -124,7 +126,7 @@ export const notificationService = {
   sendNotificationToUser: async (userId: string, notification: { title: string; description: string; type: string; details?: string }): Promise<Notification> => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:7070/users/${userId}/notifications`, {
+      const response = await fetch(`${API_URL}/users/${userId}/notifications`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -157,7 +159,7 @@ export const notificationService = {
         ...(sendToAll ? { all: true } : { userIds })
       };
 
-      const response = await fetch('http://localhost:7070/users/notifications/bulk', {
+      const response = await fetch(`${API_URL}/users/notifications/bulk`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -194,7 +196,7 @@ export const notificationService = {
         throw new Error('You can only delete your own notifications');
       }
 
-      const response = await fetch(`http://localhost:7070/notifications/${id}`, {
+      const response = await fetch(`${API_URL}/notifications/${id}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,

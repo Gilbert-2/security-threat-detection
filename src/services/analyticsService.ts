@@ -36,11 +36,13 @@ const generateMockAnalytics = (): AnalyticsData[] => {
 
 const mockAnalyticsData = generateMockAnalytics();
 
+const API_URL = "https://security-threat-backend.onrender.com";
+
 export const analyticsService = {
   // Get analytics for a date range or all analytics if no dates are provided
   getAnalytics: async (startDate?: string, endDate?: string): Promise<AnalyticsData[]> => {
     try {
-      let url = 'http://localhost:7070/analytics';
+      let url = `${API_URL}/analytics`;
       const params = new URLSearchParams();
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
       const isAdmin = currentUser.role === 'admin';
@@ -70,7 +72,7 @@ export const analyticsService = {
   // Get analytics summary
   getAnalyticsSummary: async (): Promise<AnalyticsSummary> => {
     try {
-      let url = 'http://localhost:7070/analytics/summary';
+      let url = `${API_URL}/analytics/summary`;
       const params = new URLSearchParams();
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
       const isAdmin = currentUser.role === 'admin';
@@ -98,7 +100,7 @@ export const analyticsService = {
   // Get analytics for specific metrics
   getMetricsData: async (metric: string): Promise<any> => {
     try {
-      let url = `http://localhost:7070/analytics/metrics/${metric}`;
+      let url = `${API_URL}/analytics/metrics/${metric}`;
       const params = new URLSearchParams();
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
       const isAdmin = currentUser.role === 'admin';

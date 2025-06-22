@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 import axios from "axios";
 import { Alert, AlertSeverity, AlertStatus, LocationType } from "@/types/alert";
 
+const API_URL = "https://security-threat-backend.onrender.com";
+
 const getSeverityColor = (severity: AlertSeverity) => {
   switch (severity) {
     case AlertSeverity.CRITICAL: return "text-alert-critical bg-alert-critical/10 border-alert-critical";
@@ -63,7 +65,7 @@ const Incidents = () => {
   const fetchIncidents = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:7070/alerts', {
+      const response = await axios.get(`${API_URL}/alerts`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`
         }
@@ -80,7 +82,7 @@ const Incidents = () => {
 
   const updateIncidentStatus = async (id: string, status: AlertStatus) => {
     try {
-      await axios.patch(`http://localhost:7070/alerts/${id}`, 
+      await axios.patch(`${API_URL}/alerts/${id}`, 
         { status },
         {
           headers: {

@@ -13,6 +13,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { userService, UserActivity } from "@/services/userService";
 
+const API_URL = "https://security-threat-backend.onrender.com";
+
 const Profile = () => {
   const { user, logout } = useAuth();
   const { toast } = useToast();
@@ -128,7 +130,7 @@ const Profile = () => {
             </CardHeader>
             <CardContent className="flex flex-col items-center">
               <Avatar className="h-24 w-24 mb-4">
-                <AvatarImage src={user.picture ? `http://localhost:7070/uploads/${user.picture}` : `https://api.dicebear.com/7.x/initials/svg?seed=${user.firstName}${user.lastName}`} alt="Profile image" />
+                <AvatarImage src={user.picture ? `${API_URL}/uploads/${user.picture}` : `https://api.dicebear.com/7.x/initials/svg?seed=${user.firstName}${user.lastName}`} alt="Profile image" />
                 <AvatarFallback>{user.firstName?.[0]}{user.lastName?.[0]}</AvatarFallback>
               </Avatar>
               <h3 className="text-xl font-bold">{user.firstName} {user.lastName}</h3>
