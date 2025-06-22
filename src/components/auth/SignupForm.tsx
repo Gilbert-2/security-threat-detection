@@ -38,7 +38,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
     resolver: zodResolver(signupSchema),
     defaultValues: {
       role: "user",
-      department: "security",
+      department: "IT",
     }
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -205,7 +205,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
             Department
           </label>
           <Select 
-            defaultValue="security"
+            defaultValue="IT"
             onValueChange={(value) => setValue("department", value)}
             disabled={isLoading}
           >
@@ -213,10 +213,10 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
               <SelectValue placeholder="Select department" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="security">Security</SelectItem>
-              <SelectItem value="it">IT</SelectItem>
-              <SelectItem value="operations">Operations</SelectItem>
-              <SelectItem value="management">Management</SelectItem>
+              <SelectItem value="Security">Security</SelectItem>
+              <SelectItem value="IT">IT</SelectItem>
+              <SelectItem value="Operations">Operations</SelectItem>
+              <SelectItem value="Management">Management</SelectItem>
             </SelectContent>
           </Select>
         </div>

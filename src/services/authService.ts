@@ -74,43 +74,27 @@ export const authService = {
   signup: async (userData: SignupRequest): Promise<User> => {
     try {
       // Remove confirmPassword as it's not needed by the API
-      const { confirmPassword, ...signupData } = userData;
-      let request;
-      if (signupData.picture && typeof signupData.picture !== 'string') {
-        const formData = new FormData();
-        Object.entries(signupData).forEach(([key, value]) => {
-          if (key === 'picture' && value !== null && typeof value !== 'string') {
-            formData.append('picture', value);
-          } else if (value !== undefined && value !== null) {
-            formData.append(key, String(value));
-          } else {
-            // Send empty string for missing fields to satisfy backend string requirement
-            formData.append(key, '');
-          }
-        });
-        request = fetch(`${API_URL}/auth/register`, {
-          method: "POST",
-          body: formData,
-        });
-      } else {
-        // Ensure all fields are strings, even if empty
-        const payload = { ...signupData };
-        Object.keys(payload).forEach((key) => {
-          if (payload[key] === undefined || payload[key] === null) {
-            payload[key] = '';
-          } else {
-            payload[key] = String(payload[key]);
-          }
-        });
-        request = fetch(`${API_URL}/auth/register`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        });
-      }
-      const response = await request;
+      const { confirmPassword, picture, ...signupData } = userData;
+      // Only send the picture as a string (filename) or empty string
+      const payload = {
+        ...signupData,
+        picture: picture && typeof picture === 'object' && picture.name ? picture.name : (typeof picture === 'string' ? picture : ''),
+      };
+      // Ensure all fields are strings
+      Object.keys(payload).forEach((key) => {
+        if (payload[key] === undefined || payload[key] === null) {
+          payload[key] = '';
+        } else {
+          payload[key] = String(payload[key]);
+        }
+      });
+      const response = await fetch(`${API_URL}/auth/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Registration failed");
