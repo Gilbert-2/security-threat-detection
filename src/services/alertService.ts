@@ -1,4 +1,3 @@
-
 import api from "./api";
 import { alertSummary } from "@/data/mockData";
 
@@ -62,7 +61,6 @@ export const alertService = {
   // Acknowledge an alert
   acknowledgeAlert: async (id: string): Promise<void> => {
     // await api.put(`/alerts/${id}/acknowledge`, {});
-    console.log(`Alert ${id} acknowledged`);
     return Promise.resolve();
   },
 

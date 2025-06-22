@@ -31,32 +31,22 @@ export const authService = {
         body: JSON.stringify(credentials),
       });
 
-      console.log('Login response status:', response.status); // Debug log
-      
       if (!response.ok) {
         const error = await response.json();
-        console.error('Login error response:', error); // Debug log
         throw new Error(error.message || "Login failed");
       }
 
       const data = await response.json();
-      console.log('Login response data:', { 
-        token: data.access_token ? 'present' : 'missing',
-        user: data.user 
-      }); // Debug log
 
       if (!data.access_token) {
-        console.error('No token received in login response'); // Debug log
         throw new Error("Authentication failed - no token received");
       }
 
       // Store JWT token
       localStorage.setItem("authToken", data.access_token);
-      console.log('Auth token stored in localStorage'); // Debug log
       
       // Store user data
       localStorage.setItem("user", JSON.stringify(data.user));
-      console.log('User data stored in localStorage:', data.user); // Debug log
 
       return data.user;
     } catch (error: any) {
@@ -114,10 +104,8 @@ export const authService = {
   },
 
   logout: (): void => {
-    console.log('Logging out user...'); // Debug log
     localStorage.removeItem("authToken");
     localStorage.removeItem("user");
-    console.log('Auth token and user data removed from localStorage'); // Debug log
   },
 
   getCurrentUser: (): User | null => {
@@ -133,9 +121,7 @@ export const authService = {
   },
 
   getAuthToken: (): string | null => {
-    const token = localStorage.getItem('authToken');
-    console.log('Getting auth token:', token ? 'present' : 'missing'); // Debug log
-    return token;
+    return localStorage.getItem('authToken');
   },
 
   isAuthenticated: (): boolean => {

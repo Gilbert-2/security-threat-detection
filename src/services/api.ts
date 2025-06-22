@@ -1,4 +1,3 @@
-
 /**
  * Core API client for security monitoring system
  * This will be connected to the actual backend once implemented
@@ -30,9 +29,6 @@ const fetchApi = async <T>(
 ): Promise<ApiResponse<T>> => {
   try {
     // This will be replaced with actual API call implementation
-    console.log(`API Call to ${API_BASE_URL}${endpoint}`);
-    
-    // For now return mock data based on the endpoint
     // In production, this would be:
     // const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
     // const data = await response.json();

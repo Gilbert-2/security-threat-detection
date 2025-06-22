@@ -41,7 +41,7 @@ export const notificationService = {
         endpoint = `${API_URL}/notifications`; // Admin gets all notifications
       } else {
         if (!currentUser.id) {
-          console.warn('User ID not found, cannot fetch user-specific notifications');
+          console.error('User ID not found, cannot fetch user-specific notifications');
           return [];
         }
         endpoint = `${API_URL}/notifications/user/${currentUser.id}`; // User gets their own notifications
@@ -55,7 +55,7 @@ export const notificationService = {
       
       if (!response.ok) {
         if (response.status === 404) {
-          console.warn('Notifications endpoint not found, returning empty array');
+          console.error('Notifications endpoint not found, returning empty array');
           return [];
         }
         throw new Error(`Failed to fetch notifications: ${response.statusText}`);

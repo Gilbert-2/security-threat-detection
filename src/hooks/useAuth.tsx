@@ -36,12 +36,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const loadUser = async () => {
       try {
         const token = authService.getAuthToken();
-        console.log('Auth Token:', token); // Debug log
 
         if (token) {
           // Always fetch fresh user data from the server
           try {
-            console.log('Fetching user profile...'); // Debug log
             const response = await fetch(`${API_URL}/users/profile`, {
               headers: {
                 Authorization: `Bearer ${token}`
@@ -50,18 +48,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             
             if (response.ok) {
               const userData = await response.json();
-              console.log('User data from server:', userData); // Debug log
               
               // Ensure role is properly set
               if (!userData.role) {
-                console.error('User data missing role:', userData);
                 throw new Error('User data is incomplete');
               }
               
               setUser(userData);
               localStorage.setItem("user", JSON.stringify(userData));
             } else {
-              console.error('Profile fetch failed:', response.status); // Debug log
               // Invalid token or other error
               authService.logout();
               toast({
@@ -70,11 +65,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               });
             }
           } catch (error) {
-            console.error("Failed to fetch user profile:", error);
             authService.logout();
           }
-        } else {
-          console.log('No auth token found'); // Debug log
         }
       } catch (error) {
         console.error("Auth loading error:", error);
@@ -87,7 +79,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, [toast]);
 
   const logout = () => {
-    console.log('Logging out user:', user); // Debug log
     authService.logout();
     setUser(null);
     toast({

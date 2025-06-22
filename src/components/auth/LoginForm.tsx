@@ -36,16 +36,13 @@ const LoginForm = ({ onSuccess }: LoginFormProps) => {
   
   const onSubmit = async (data: FormValues) => {
     setIsLoading(true);
-    console.log('Attempting login with email:', data.email); // Debug log
     
     try {
-      console.log('Calling authService.login...'); // Debug log
       const user = await authService.login({
         email: data.email,
         password: data.password,
       });
       
-      console.log('Login successful, user data:', user); // Debug log
       setUser(user);
       
       toast({
@@ -54,11 +51,9 @@ const LoginForm = ({ onSuccess }: LoginFormProps) => {
       });
       
       if (onSuccess) {
-        console.log('Calling onSuccess callback...'); // Debug log
         onSuccess();
       }
     } catch (error: any) {
-      console.error("Login error:", error);
       // Error toast is handled in authService
     } finally {
       setIsLoading(false);

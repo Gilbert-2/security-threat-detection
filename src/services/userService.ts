@@ -207,7 +207,7 @@ export const userService = {
       
       // Check if user is trying to access their own activities or is an admin
       if (currentUser.id !== userId && currentUser.role !== 'admin') {
-        console.warn('User attempted to access activities of another user');
+        console.error('User attempted to access activities of another user');
         return { activities: [], pagination: {} }; // Return empty array instead of throwing error
       }
 
@@ -219,7 +219,7 @@ export const userService = {
 
       if (!response.ok) {
         if (response.status === 404) {
-          console.warn(`No activities found for user ${userId}`);
+          console.error(`No activities found for user ${userId}`);
           return { activities: [], pagination: {} };
         }
         throw new Error(`Failed to fetch activities: ${response.statusText}`);

@@ -1,4 +1,3 @@
-
 import api from "./api";
 
 export interface Camera {
@@ -73,7 +72,6 @@ export const cameraService = {
     // const response = await api.put<Camera>(`/cameras/${id}/status`, { status });
     // return response.data;
     
-    console.log(`Camera ${id} status updated to ${status}`);
     return Promise.resolve({
       id,
       name: `Camera ${id}`,
