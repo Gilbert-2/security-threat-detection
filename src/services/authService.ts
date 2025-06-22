@@ -22,8 +22,6 @@ const API_URL = "https://security-threat-backend.onrender.com";
 
 export const authService = {
   login: async (credentials: LoginRequest): Promise<User> => {
-    console.log('authService.login called with credentials:', { email: credentials.email }); // Debug log
-    
     try {
       const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
