@@ -25,30 +25,12 @@ const Profile = () => {
   const [activityLoading, setActivityLoading] = useState(false);
 
   useEffect(() => {
-    const loadUserData = async () => {
-      try {
-        // If we don't have user data, try to fetch it
-        if (!user) {
-          const token = localStorage.getItem('authToken');
-          if (token) {
-            const userData = await userService.getCurrentUser();
-            if (userData) {
-              localStorage.setItem("user", JSON.stringify(userData));
-            }
-          } else {
-            setError('Authentication token not found');
-            navigate('/landing');
-          }
-        }
-        setLoading(false);
-      } catch (err) {
-        console.error("Error loading user data:", err);
-        setError('Failed to load user data');
-        setLoading(false);
-      }
-    };
-    
-    loadUserData();
+    if (!user) {
+      setError('User not found');
+      navigate('/landing');
+    } else {
+      setLoading(false);
+    }
   }, [user, navigate]);
 
   // Fetch user activity when the component mounts
