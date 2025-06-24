@@ -177,6 +177,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
             {...register("firstName")}
             autoComplete="given-name"
             disabled={isLoading}
+            placeholder="John"
           />
           {errors.firstName && (
             <p className="text-sm text-red-500">{errors.firstName.message}</p>
@@ -192,6 +193,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
             {...register("lastName")}
             autoComplete="family-name"
             disabled={isLoading}
+            placeholder="Doe"
           />
           {errors.lastName && (
             <p className="text-sm text-red-500">{errors.lastName.message}</p>
@@ -209,6 +211,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
           {...register("email")}
           autoComplete="email"
           disabled={isLoading}
+          placeholder="john.doe@email.com"
         />
         {errors.email && (
           <p className="text-sm text-red-500">{errors.email.message}</p>
@@ -275,6 +278,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
           {...register("phoneNumber")}
           autoComplete="tel"
           disabled={isLoading}
+          placeholder="+1234567890"
         />
       </div>
 
@@ -288,6 +292,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
           {...register("password")}
           autoComplete="new-password"
           disabled={isLoading}
+          placeholder="At least 8 characters"
         />
         {errors.password && (
           <p className="text-sm text-red-500">{errors.password.message}</p>
@@ -304,6 +309,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
           {...register("confirmPassword")}
           autoComplete="new-password"
           disabled={isLoading}
+          placeholder="Repeat your password"
         />
         {errors.confirmPassword && (
           <p className="text-sm text-red-500">{errors.confirmPassword.message}</p>
