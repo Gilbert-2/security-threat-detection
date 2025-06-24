@@ -108,7 +108,7 @@ export const ResizableSidebar = () => {
         isResizing && "select-none"
       )}>
         <div className="p-2 flex items-center justify-between">
-          {!collapsed && <div className="text-lg font-bold text-security-blue px-2">SecuritySystem</div>}
+          {!collapsed && <div className="text-lg font-bold text-security-blue px-2">Security System</div>}
           <Button variant="ghost" size="icon" onClick={toggleSidebar}>
             {collapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
           </Button>

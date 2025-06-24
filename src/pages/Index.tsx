@@ -14,6 +14,7 @@ const Index = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [fightResult, setFightResult] = useState<any>(null);
   
   // Log user activity when dashboard is loaded
   useEffect(() => {
@@ -64,11 +65,11 @@ const Index = () => {
           
           {/* Video Feed and Alert Summary Section - make sure they have equal height */}
           <div className="lg:col-span-6 flex flex-col mb-4">
-            <VideoFeed selectedCameraId="Main Entrance Camera" />
+            <VideoFeed selectedCameraId="Main Entrance Camera" fightResult={fightResult} setFightResult={setFightResult} />
           </div>
           
           <div className="lg:col-span-6 flex flex-col mb-4">
-            <AlertsSummary />
+            <AlertsSummary fightResult={fightResult} />
           </div>
           
           {/* Rules and Activity Logs - Third row side by side */}
