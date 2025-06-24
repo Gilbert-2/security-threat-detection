@@ -16,6 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 import { notificationService } from "@/services/notificationService";
 import { useState, useEffect } from "react";
 
+const API_URL = "https://security-threat-backend.onrender.com";
+
 export const Header = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const { user, isAuthenticated, logout } = useAuth();
@@ -82,7 +84,7 @@ export const Header = () => {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={user?.picture} alt={user?.firstName} />
+                      <AvatarImage src={user?.picture ? `${API_URL}/uploads/${user.picture}` : undefined} alt={user?.firstName} />
                       <AvatarFallback>
                         {user?.firstName?.[0]}{user?.lastName?.[0]}
                       </AvatarFallback>
