@@ -1,4 +1,3 @@
-
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -45,16 +44,16 @@ const Settings = () => {
         
         <Tabs defaultValue="notifications" className="w-full">
           <TabsList className="grid grid-cols-4 mb-4">
-            <TabsTrigger value="notifications" className="flex gap-2">
+            <TabsTrigger value="notifications" className="flex gap-2 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-security-blue data-[state=active]:text-security-blue">
               <Bell className="h-4 w-4" /> Notifications
             </TabsTrigger>
-            <TabsTrigger value="cameras" className="flex gap-2">
+            <TabsTrigger value="cameras" className="flex gap-2 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-security-blue data-[state=active]:text-security-blue">
               <Camera className="h-4 w-4" /> Cameras
             </TabsTrigger>
-            <TabsTrigger value="access" className="flex gap-2">
+            <TabsTrigger value="access" className="flex gap-2 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-security-blue data-[state=active]:text-security-blue">
               <Lock className="h-4 w-4" /> Access Control
             </TabsTrigger>
-            <TabsTrigger value="system" className="flex gap-2">
+            <TabsTrigger value="system" className="flex gap-2 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-security-blue data-[state=active]:text-security-blue">
               <Monitor className="h-4 w-4" /> System
             </TabsTrigger>
           </TabsList>

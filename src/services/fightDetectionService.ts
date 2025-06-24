@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-// TODO: Replace with your actual API endpoint
+
 const FIGHT_DETECTION_API_URL = 'http://localhost:8000/predict';
 
 export const detectFight = async (formData: FormData, threshold = 0.5) => {

@@ -292,14 +292,26 @@ const Notifications = () => {
                 <CardTitle className="text-lg">Notification Feed</CardTitle>
                 <Tabs defaultValue="all" className="w-full" value={activeTab} onValueChange={setActiveTab}>
                   <TabsList className="grid grid-cols-4 w-full">
-                    <TabsTrigger value="all">
-                      All <Badge className="ml-1">{notifications?.length || 0}</Badge>
+                    <TabsTrigger value="all" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-security-blue data-[state=active]:text-security-blue">
+                      All
+                      <Badge
+                        className="ml-1 h-4 min-w-[1rem] px-1.5 rounded-full bg-muted text-foreground text-xs font-bold flex items-center justify-center pointer-events-none select-none hover:bg-muted hover:text-foreground"
+                        style={{ verticalAlign: 'middle', lineHeight: '1rem' }}
+                      >
+                        {notifications?.length || 0}
+                      </Badge>
                     </TabsTrigger>
-                    <TabsTrigger value="unread">
-                      Unread <Badge className="ml-1">{unreadCount}</Badge>
+                    <TabsTrigger value="unread" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-security-blue data-[state=active]:text-security-blue">
+                      Unread
+                      <Badge
+                        className="ml-1 h-4 min-w-[1rem] px-1.5 rounded-full bg-security-blue text-white text-xs font-bold flex items-center justify-center pointer-events-none select-none hover:bg-security-blue hover:text-white"
+                        style={{ verticalAlign: 'middle', lineHeight: '1rem' }}
+                      >
+                        {unreadCount}
+                      </Badge>
                     </TabsTrigger>
-                    <TabsTrigger value="security">Security</TabsTrigger>
-                    <TabsTrigger value="system">System</TabsTrigger>
+                    <TabsTrigger value="security" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-security-blue data-[state=active]:text-security-blue">Security</TabsTrigger>
+                    <TabsTrigger value="system" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-security-blue data-[state=active]:text-security-blue">System</TabsTrigger>
                   </TabsList>
                 </Tabs>
               </CardHeader>

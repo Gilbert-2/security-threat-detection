@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -399,11 +398,11 @@ const ResponseRules = () => {
 
         {/* Create Rule Dialog */}
         <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-lg w-full max-h-[80vh] overflow-y-auto bg-slate-900 text-foreground rounded-lg custom-dialog-scrollbar">
             <DialogHeader>
               <DialogTitle>Create Response Rule</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <div className="space-y-3 py-2 px-0">
               <div className="space-y-2">
                 <Label htmlFor="name">Rule Name</Label>
                 <Input
@@ -478,11 +477,11 @@ const ResponseRules = () => {
 
         {/* Edit Rule Dialog */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-lg w-full max-h-[80vh] overflow-y-auto bg-slate-900 text-foreground rounded-lg custom-dialog-scrollbar">
             <DialogHeader>
               <DialogTitle>Edit Response Rule</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <div className="space-y-3 py-2 px-0">
               <div className="space-y-2">
                 <Label htmlFor="edit-name">Rule Name</Label>
                 <Input

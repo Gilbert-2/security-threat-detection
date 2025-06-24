@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -105,4 +104,25 @@
   .animate-alert-blink {
     animation: blink 1s ease-in-out infinite;
   }
+}
+
+/* Custom scrollbar for dialogs */
+.custom-dialog-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+.custom-dialog-scrollbar::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary));
+  border-radius: 8px;
+}
+.custom-dialog-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #2563eb; /* lighter blue on hover */
+}
+.custom-dialog-scrollbar::-webkit-scrollbar-track {
+  background: hsl(var(--card));
+  border-radius: 8px;
+}
+
+.custom-dialog-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--primary)) hsl(var(--card));
 }

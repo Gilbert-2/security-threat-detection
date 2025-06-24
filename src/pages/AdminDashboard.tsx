@@ -269,15 +269,15 @@ const AdminDashboard = () => {
 
         <Tabs defaultValue="user-management" className="w-full" value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="user-management" className="flex items-center gap-2">
+            <TabsTrigger value="user-management" className="flex items-center gap-2 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-security-blue data-[state=active]:text-security-blue">
               <Users className="h-4 w-4" />
               User Management
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="flex items-center gap-2">
+            <TabsTrigger value="notifications" className="flex items-center gap-2 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-security-blue data-[state=active]:text-security-blue">
               <Bell className="h-4 w-4" />
               Send Notifications
             </TabsTrigger>
-            <TabsTrigger value="system-overview" className="flex items-center gap-2">
+            <TabsTrigger value="system-overview" className="flex items-center gap-2 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-security-blue data-[state=active]:text-security-blue">
               <Shield className="h-4 w-4" />
               System Overview
             </TabsTrigger>

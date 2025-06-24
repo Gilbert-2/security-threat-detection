@@ -62,16 +62,16 @@ export const AnalyticsChart = () => {
         <div className="flex space-x-2">
           <Tabs defaultValue="area" value={chartType} onValueChange={(v) => setChartType(v as "line" | "area" | "bar")}>
             <TabsList className="h-8">
-              <TabsTrigger value="line" className="text-xs">Line</TabsTrigger>
-              <TabsTrigger value="area" className="text-xs">Area</TabsTrigger>
-              <TabsTrigger value="bar" className="text-xs">Bar</TabsTrigger>
+              <TabsTrigger value="line" className="text-xs data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-security-blue data-[state=active]:text-security-blue">Line</TabsTrigger>
+              <TabsTrigger value="area" className="text-xs data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-security-blue data-[state=active]:text-security-blue">Area</TabsTrigger>
+              <TabsTrigger value="bar" className="text-xs data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-security-blue data-[state=active]:text-security-blue">Bar</TabsTrigger>
             </TabsList>
           </Tabs>
           
           <Tabs defaultValue="today" value={timeRange} onValueChange={(v) => setTimeRange(v as "today" | "week")}>
             <TabsList className="h-8">
-              <TabsTrigger value="today" className="text-xs">Today</TabsTrigger>
-              <TabsTrigger value="week" className="text-xs">This Week</TabsTrigger>
+              <TabsTrigger value="today" className="text-xs data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-security-blue data-[state=active]:text-security-blue">Today</TabsTrigger>
+              <TabsTrigger value="week" className="text-xs data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-security-blue data-[state=active]:text-security-blue">This Week</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>

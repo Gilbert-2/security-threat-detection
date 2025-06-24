@@ -158,12 +158,12 @@ const History = () => {
                 <CardTitle className="text-lg">Activity Feed</CardTitle>
                 <Tabs defaultValue="all" className="w-full" value={activeTab} onValueChange={setActiveTab}>
                   <TabsList className="grid grid-cols-4 w-full">
-                    <TabsTrigger value="all">
+                    <TabsTrigger value="all" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-security-blue data-[state=active]:text-security-blue">
                       All <Badge className="ml-1">{activities?.length || 0}</Badge>
                     </TabsTrigger>
-                    <TabsTrigger value="login">Login</TabsTrigger>
-                    <TabsTrigger value="security">Security</TabsTrigger>
-                    <TabsTrigger value="system">System</TabsTrigger>
+                    <TabsTrigger value="login" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-security-blue data-[state=active]:text-security-blue">Login</TabsTrigger>
+                    <TabsTrigger value="security" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-security-blue data-[state=active]:text-security-blue">Security</TabsTrigger>
+                    <TabsTrigger value="system" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-security-blue data-[state=active]:text-security-blue">System</TabsTrigger>
                   </TabsList>
                 </Tabs>
               </CardHeader>

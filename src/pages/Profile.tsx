@@ -144,13 +144,13 @@ const Profile = () => {
           <div className="md:col-span-2 space-y-6">
             <Tabs defaultValue="account" className="w-full">
               <TabsList className="grid grid-cols-3 mb-4">
-                <TabsTrigger value="account" className="flex gap-2">
+                <TabsTrigger value="account" className="flex gap-2 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-security-blue data-[state=active]:text-security-blue">
                   <UserIcon className="h-4 w-4" /> Account
                 </TabsTrigger>
-                <TabsTrigger value="security" className="flex gap-2">
+                <TabsTrigger value="security" className="flex gap-2 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-security-blue data-[state=active]:text-security-blue">
                   <ShieldAlert className="h-4 w-4" /> Security
                 </TabsTrigger>
-                <TabsTrigger value="activity" className="flex gap-2">
+                <TabsTrigger value="activity" className="flex gap-2 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-security-blue data-[state=active]:text-security-blue">
                   <History className="h-4 w-4" /> Activity
                 </TabsTrigger>
               </TabsList>

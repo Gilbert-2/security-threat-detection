@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Shield, LogIn, UserPlus } from "lucide-react";
@@ -24,7 +23,7 @@ const Landing = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col overflow-hidden">
       <header className="flex items-center justify-between p-4 bg-slate-900/80 border-b border-slate-700/50 backdrop-blur-md sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-security-blue/20 text-security-blue">
@@ -48,8 +47,8 @@ const Landing = () => {
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center p-6 bg-slate-900 bg-gradient-to-b from-slate-900 to-slate-950">
-        <Card className="max-w-4xl w-full bg-slate-800/80 border-slate-700/50">
+      <main className="flex-1 flex items-center justify-center bg-slate-900 bg-gradient-to-b from-slate-900 to-slate-950 overflow-hidden">
+        <Card className="max-w-4xl w-full h-full flex flex-col justify-center bg-slate-800/80 border-slate-700/50 shadow-xl">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold bg-gradient-to-r from-security-blue to-accent bg-clip-text text-transparent">
               Advanced Security Monitoring Platform

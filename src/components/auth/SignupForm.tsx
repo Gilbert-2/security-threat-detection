@@ -9,6 +9,7 @@ import { Loader2, CheckCircle2, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { authService } from "@/services/authService";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { uploadService } from "@/services/uploadService";
 
 const signupSchema = z.object({
   firstName: z.string().min(2, "First name must be at least 2 characters"),
@@ -42,21 +43,35 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
     }
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [profilePicture, setProfilePicture] = useState<File | null>(null);
+  const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handlePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setProfilePicture(file);
-      setValue("picture", file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      setUploading(true);
+      try {
+        // Show preview immediately
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setPreviewUrl(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+
+        // Upload to backend and get filename
+        const filename = await uploadService.uploadProfilePicture(file);
+        setProfilePicture(filename);
+        setValue("picture", filename);
+      } catch (err) {
+        // Optionally show a toast for upload error
+        setProfilePicture(null);
+        setValue("picture", "");
+      } finally {
+        setUploading(false);
+      }
     }
   };
 
@@ -123,7 +138,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-h-[60vh] overflow-y-auto py-4 px-1">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-h-[60vh] overflow-y-auto py-4 px-1 custom-dialog-scrollbar">
       <div className="flex flex-col items-center space-y-4 mb-4">
         <Avatar className="h-24 w-24">
           <AvatarImage src={previewUrl || undefined} />
@@ -144,9 +159,10 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
             size="sm" 
             className="cursor-pointer gap-2"
             onClick={triggerFileInput}
+            disabled={uploading}
           >
             <Upload className="h-4 w-4" />
-            Upload Picture
+            {uploading ? "Uploading..." : "Upload Picture"}
           </Button>
         </div>
       </div>
