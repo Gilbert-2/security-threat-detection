@@ -33,11 +33,10 @@ export const SendNotificationForm = () => {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [sendToAll, setSendToAll] = useState(false);
   const [notificationType, setNotificationType] = useState<'specific' | 'multiple' | 'all'>('specific');
-  const [formData, setFormData] = useState<CreateNotificationDto>({
+  const [formData, setFormData] = useState({
     title: '',
     description: '',
     type: 'system',
-    details: ''
   });
   const { toast } = useToast();
 
@@ -79,7 +78,6 @@ export const SendNotificationForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!formData.title.trim() || !formData.description.trim()) {
       toast({
         title: "Validation Error",
@@ -88,7 +86,6 @@ export const SendNotificationForm = () => {
       });
       return;
     }
-
     if (notificationType === 'specific' && selectedUsers.length === 0) {
       toast({
         title: "Validation Error",
@@ -97,7 +94,6 @@ export const SendNotificationForm = () => {
       });
       return;
     }
-
     if (notificationType === 'multiple' && selectedUsers.length === 0) {
       toast({
         title: "Validation Error",
@@ -106,58 +102,44 @@ export const SendNotificationForm = () => {
       });
       return;
     }
-
     setLoading(true);
-
     try {
       let response;
-      
+      const notificationPayload = {
+        title: formData.title,
+        description: formData.description,
+        type: formData.type,
+      };
       if (notificationType === 'specific' && selectedUsers.length === 1) {
-        // Send to specific user
         response = await notificationService.sendNotificationToUser(
-          selectedUsers[0], 
-          formData
+          selectedUsers[0],
+          notificationPayload
         );
         toast({
           title: "Success",
           description: `Notification sent to user successfully.`,
         });
       } else if (notificationType === 'multiple' || (notificationType === 'specific' && selectedUsers.length > 1)) {
-        // Send to multiple users
-        const bulkData: CreateBulkNotificationDto = {
-          notification: formData,
-          userIds: selectedUsers,
-          all: false
-        };
-        response = await notificationService.sendBulkNotifications(selectedUsers, formData);
+        response = await notificationService.sendBulkNotifications(selectedUsers, notificationPayload);
         toast({
           title: "Success",
           description: `Notification sent to ${response.count} users successfully.`,
         });
       } else if (notificationType === 'all' || sendToAll) {
-        // Send to all users
-        const bulkData: CreateBulkNotificationDto = {
-          notification: formData,
-          all: true
-        };
-        response = await notificationService.sendBulkNotifications([], formData, true);
+        response = await notificationService.sendBulkNotifications([], notificationPayload, true);
         toast({
           title: "Success",
           description: `Notification sent to all ${response.count} users successfully.`,
         });
       }
-
-      // Reset form
       setFormData({
         title: '',
         description: '',
         type: 'system',
-        details: ''
       });
       setSelectedUsers([]);
       setSendToAll(false);
       setNotificationType('specific');
-
     } catch (error: any) {
       toast({
         title: "Error",
@@ -316,18 +298,6 @@ export const SendNotificationForm = () => {
                     </SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="details">Details (Optional)</Label>
-                <Textarea
-                  id="details"
-                  value={formData.details}
-                  onChange={(e) => setFormData(prev => ({ ...prev, details: e.target.value }))}
-                  placeholder="Enter additional details"
-                  rows={3}
-                  className="resize-none"
-                />
               </div>
             </div>
 
@@ -549,11 +519,6 @@ export const SendNotificationForm = () => {
                           <p className="text-sm text-muted-foreground mb-2">
                             {formData.description || 'Notification description will appear here...'}
                           </p>
-                          {formData.details && (
-                            <div className="text-xs text-muted-foreground bg-slate-900/50 p-2 rounded">
-                              {formData.details}
-                            </div>
-                          )}
                         </div>
                       </div>
                     </CardContent>

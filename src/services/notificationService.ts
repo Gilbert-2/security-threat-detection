@@ -2,11 +2,13 @@ export interface Notification {
   id: string;
   title: string;
   description: string;
+  message?: string;
   createdAt: string;
   read: boolean;
   type: 'security' | 'system' | 'hardware' | 'user';
   details: string;
   userId: string;
+  metadata?: Record<string, any>;
 }
 
 const API_URL = "https://security-threat-backend.onrender.com";

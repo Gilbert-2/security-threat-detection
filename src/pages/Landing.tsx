@@ -30,7 +30,7 @@ const Landing = () => {
             <Shield className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="text-xl font-bold bg-gradient-to-r from-security-blue to-accent bg-clip-text text-transparent">Security Threat Monitor</h1>
+            <h1 className="text-xl font-bold bg-gradient-to-r from-security-blue to-accent bg-clip-text text-transparent">Security Reporting System</h1>
             <p className="text-xs text-muted-foreground hidden sm:block">Real-time security monitoring & response</p>
           </div>
         </div>

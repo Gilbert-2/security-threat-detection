@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Header } from "@/components/Header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,22 +7,26 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Fingerprint, History, Key, LogOut, Save, ShieldAlert, User as UserIcon } from "lucide-react";
+import { Fingerprint, History, Key, LogOut, Save, ShieldAlert, User as UserIcon, Loader2, Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { userService, UserActivity } from "@/services/userService";
+import { uploadService } from "@/services/uploadService";
 
 const API_URL = "https://security-threat-backend.onrender.com";
 
 const Profile = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, setUser } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userActivities, setUserActivities] = useState<UserActivity[]>([]);
   const [activityLoading, setActivityLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!user) {
@@ -60,6 +64,47 @@ const Profile = () => {
   const formatActivityDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleString();
+  };
+
+  // Handle profile picture upload
+  const handlePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && user?.id) {
+      setUploading(true);
+      try {
+        // Show preview immediately
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setPreviewUrl(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+
+        // Upload to backend and get filename
+        const filename = await uploadService.uploadProfilePicture(file);
+        // Update user profile with new picture
+        const updatedUser = await userService.updateUserProfile(user.id, { picture: filename });
+        setUser(updatedUser);
+        setPreviewUrl(null); // Use backend image after upload
+        toast({
+          title: "Profile picture updated",
+          description: "Your profile picture has been updated successfully.",
+        });
+      } catch (err) {
+        toast({
+          title: "Upload failed",
+          description: "There was a problem uploading your profile picture.",
+          variant: "destructive",
+        });
+      } finally {
+        setUploading(false);
+      }
+    }
+  };
+
+  const triggerFileInput = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
   };
 
   if (loading) {
@@ -112,9 +157,31 @@ const Profile = () => {
             </CardHeader>
             <CardContent className="flex flex-col items-center">
               <Avatar className="h-24 w-24 mb-4">
-                <AvatarImage src={user.picture ? `${API_URL}/uploads/${user.picture}` : `https://api.dicebear.com/7.x/initials/svg?seed=${user.firstName}${user.lastName}`} alt="Profile image" />
+                <AvatarImage src={previewUrl || (user.picture ? `${API_URL}/uploads/${user.picture}` : `https://api.dicebear.com/7.x/initials/svg?seed=${user.firstName}${user.lastName}`)} alt="Profile image" />
                 <AvatarFallback>{user.firstName?.[0]}{user.lastName?.[0]}</AvatarFallback>
               </Avatar>
+              <div className="flex items-center gap-2 mb-2">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePictureChange}
+                  className="hidden"
+                  id="profile-picture-upload"
+                  ref={fileInputRef}
+                  disabled={uploading}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="cursor-pointer gap-2"
+                  onClick={triggerFileInput}
+                  disabled={uploading}
+                >
+                  {uploading ? <Loader2 className="animate-spin h-4 w-4" /> : <Upload className="h-4 w-4" />}
+                  {uploading ? "Uploading..." : "Upload Picture"}
+                </Button>
+              </div>
               <h3 className="text-xl font-bold">{user.firstName} {user.lastName}</h3>
               <p className="text-muted-foreground text-sm">{user.department || 'No department'}</p>
               <Badge variant="outline" className="mt-2 mb-4">{user.role}</Badge>

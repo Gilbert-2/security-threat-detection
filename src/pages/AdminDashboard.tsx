@@ -55,6 +55,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { SendNotificationForm } from "@/components/admin/SendNotificationForm";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { SignupForm } from "@/components/auth/SignupForm";
+
+const API_URL = "https://security-threat-backend.onrender.com";
 
 const AdminDashboard = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -71,6 +75,7 @@ const AdminDashboard = () => {
   const [pageSize, setPageSize] = useState(5);
   const [pagination, setPagination] = useState<any>({});
   const [activeTab, setActiveTab] = useState("user-management");
+  const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
   
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
@@ -261,7 +266,7 @@ const AdminDashboard = () => {
             <h2 className="text-2xl font-bold">Admin Dashboard</h2>
             <p className="text-muted-foreground">Manage system users and their access levels</p>
           </div>
-          <Button className="bg-security-blue hover:bg-security-blue/90">
+          <Button className="bg-security-blue hover:bg-security-blue/90" onClick={() => setIsAddUserDialogOpen(true)}>
             <UserPlus className="mr-2 h-4 w-4" />
             Add User
           </Button>
@@ -380,9 +385,10 @@ const AdminDashboard = () => {
                           <TableRow key={user.id}>
                             <TableCell className="font-medium">
                               <div className="flex items-center gap-3">
-                                <div className="h-8 w-8 rounded-full bg-security-blue/20 flex items-center justify-center text-security-blue text-sm font-medium">
-                                  {user.firstName.charAt(0)}{user.lastName.charAt(0)}
-                                </div>
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage src={user.picture ? `${API_URL}/uploads/${user.picture}` : undefined} alt={user.firstName} />
+                                  <AvatarFallback>{user.firstName.charAt(0)}{user.lastName.charAt(0)}</AvatarFallback>
+                                </Avatar>
                                 <div>
                                   <div className="font-medium">{user.firstName} {user.lastName}</div>
                                   <div className="text-sm text-muted-foreground">{user.email}</div>
@@ -709,6 +715,19 @@ const AdminDashboard = () => {
                 Delete User
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add User Dialog */}
+        <Dialog open={isAddUserDialogOpen} onOpenChange={setIsAddUserDialogOpen}>
+          <DialogContent className="sm:max-w-[450px] md:max-w-[500px] bg-slate-800 border-slate-700 max-h-[90vh] overflow-hidden">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold text-security-blue">Add New User</DialogTitle>
+              <DialogDescription>
+                Fill in the details to create a new user account.
+              </DialogDescription>
+            </DialogHeader>
+            <SignupForm onSuccess={() => { setIsAddUserDialogOpen(false); fetchUsers(); }} />
           </DialogContent>
         </Dialog>
       </div>
