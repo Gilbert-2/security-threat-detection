@@ -64,15 +64,49 @@ export const alertService = {
     return Promise.resolve();
   },
 
-  // Create a new alert (for testing)
-  createAlert: async (alert: Omit<Alert, "id" | "timestamp">): Promise<Alert> => {
-    // const response = await api.post<Alert>("/alerts", alert);
-    // return response.data;
+  // Create a new alert (POST to backend)
+  createAlert: async (alertPayload: any): Promise<any> => {
+    // Use the actual backend endpoint with authentication
+    const token = localStorage.getItem('authToken');
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
     
-    return Promise.resolve({
-      ...alert,
-      id: `alert-${Date.now()}`,
-      timestamp: new Date().toISOString()
-    });
+    try {
+      return await api.post("https://security-threat-backend.onrender.com/alerts", alertPayload, headers);
+    } catch (error) {
+      // Fallback: Store incident locally
+      const localIncident = {
+        id: `local-${Date.now()}`,
+        ...alertPayload,
+        status: "NEW",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isLocal: true // Flag to identify locally stored incidents
+      };
+      
+      // Store in localStorage
+      const existingIncidents = JSON.parse(localStorage.getItem('localIncidents') || '[]');
+      existingIncidents.push(localIncident);
+      localStorage.setItem('localIncidents', JSON.stringify(existingIncidents));
+      
+      return {
+        data: localIncident,
+        status: 200,
+        message: "Incident stored locally (backend unavailable)"
+      };
+    }
+  },
+
+  // Test backend connectivity
+  testBackend: async (): Promise<any> => {
+    const token = localStorage.getItem('token');
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    try {
+      const response = await api.get("https://security-threat-backend.onrender.com/alerts", headers);
+      console.log("Backend test successful:", response);
+      return response;
+    } catch (error) {
+      console.error("Backend test failed:", error);
+      throw error;
+    }
   }
 };

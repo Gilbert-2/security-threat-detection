@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { AlertCircle, Package, ShieldAlert, UserX, CheckCircle } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { alertSummary, responseStats } from "@/data/mockData";
+import { useEffect, useRef } from "react";
 
 export const AlertsSummary = ({ fightResult }: { fightResult?: any }) => {
   const alertTypes = [
@@ -21,6 +22,21 @@ export const AlertsSummary = ({ fightResult }: { fightResult?: any }) => {
       icon: <ShieldAlert className="h-4 w-4 text-alert-high" />,
     },
   ];
+
+  // --- AUDIO ALERT LOGIC ---
+  // Place a short alert sound (e.g., alert.mp3) in your public/ folder for this to work.
+  const prevPrediction = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (
+      fightResult &&
+      fightResult.prediction === 'fight' &&
+      prevPrediction.current !== 'fight'
+    ) {
+      const audio = new Audio('/alert.mp3');
+      audio.play();
+    }
+    prevPrediction.current = fightResult?.prediction;
+  }, [fightResult?.prediction]);
 
   return (
     <Card>

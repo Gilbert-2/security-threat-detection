@@ -8,6 +8,7 @@ import { detectFight } from "../services/fightDetectionService";
 import { useToast } from "./ui/use-toast";
 import { Badge } from "./ui/badge";
 import { ShieldAlert, CheckCircle } from "lucide-react";
+import { alertService } from "@/services/alertService";
 
 interface VideoFeedProps {
   selectedCameraId?: string;
@@ -27,6 +28,7 @@ export const VideoFeed = ({ selectedCameraId, fightResult, setFightResult }: Vid
   const { toast } = useToast();
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [lastFightAlerted, setLastFightAlerted] = useState<string | null>(null);
 
   // Fetch cameras from service
   useEffect(() => {
@@ -88,6 +90,49 @@ export const VideoFeed = ({ selectedCameraId, fightResult, setFightResult }: Vid
         description: `Confidence: ${result.confidence_score} (${result.confidence_level})`,
         variant: result.prediction === 'fight' ? 'destructive' : 'success',
       });
+      // --- INCIDENT CREATION LOGIC ---
+      if (result.prediction === 'fight' && file.name !== lastFightAlerted) {
+        const camera = cameras.find(cam => cam.id === selectedCamera);
+        const alertPayload = {
+          title: "Fight Detected",
+          description: `A fight was detected with confidence ${result.confidence_score}.`,
+          severity: "critical",
+          locationType: "building",
+          locationName: camera?.location || camera?.name || "Unknown",
+          locationDetails: {
+            building: camera?.location || "Unknown"
+          }
+        };
+        
+        try {
+          const response = await alertService.createAlert(alertPayload);
+          setLastFightAlerted(file.name);
+          
+          const isLocal = response.data?.isLocal;
+          toast({
+            title: isLocal ? 'Incident Logged Locally' : 'Incident Logged',
+            description: isLocal 
+              ? 'Fight incident has been stored locally (backend unavailable).'
+              : 'Fight incident has been reported to the incident list.',
+            variant: 'default',
+          });
+          
+          // If incident was created on backend, refresh the incidents list after a short delay
+          if (!isLocal) {
+            setTimeout(() => {
+              // Dispatch a custom event to notify the incidents page to refresh
+              window.dispatchEvent(new CustomEvent('refreshIncidents'));
+            }, 1000);
+          }
+        } catch (e) {
+          toast({
+            title: 'Incident Logging Failed',
+            description: 'Could not log the fight incident.',
+            variant: 'destructive',
+          });
+        }
+      }
+      // --- END INCIDENT CREATION LOGIC ---
     } catch (error) {
       toast({
         title: 'Error',

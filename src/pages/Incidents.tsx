@@ -5,11 +5,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useState, useEffect } from "react";
-import { Search, Calendar, Clock, AlertCircle, CheckCheck } from "lucide-react";
+import { Search, Calendar, Clock, AlertCircle, CheckCheck, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import axios from "axios";
 import { Alert, AlertSeverity, AlertStatus, LocationType } from "@/types/alert";
+import { useToast } from "@/components/ui/use-toast";
 
 const API_URL = "https://security-threat-backend.onrender.com";
 
@@ -54,12 +56,25 @@ const Incidents = () => {
   const [incidents, setIncidents] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const severities = ["all", ...Object.values(AlertSeverity)];
   const statuses = ["all", ...Object.values(AlertStatus)];
 
   useEffect(() => {
     fetchIncidents();
+    
+    // Listen for refresh events from other components
+    const handleRefresh = () => {
+      fetchIncidents();
+    };
+    
+    window.addEventListener('refreshIncidents', handleRefresh);
+    
+    return () => {
+      window.removeEventListener('refreshIncidents', handleRefresh);
+    };
   }, []);
 
   const fetchIncidents = async () => {
@@ -67,14 +82,22 @@ const Incidents = () => {
       setLoading(true);
       const response = await axios.get(`${API_URL}/alerts`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`
+          Authorization: `Bearer ${localStorage.getItem('authToken')}`
         }
       });
-      setIncidents(response.data);
+      
+      // Get locally stored incidents
+      const localIncidents = JSON.parse(localStorage.getItem('localIncidents') || '[]');
+      
+      // Combine backend and local incidents
+      const allIncidents = [...response.data, ...localIncidents];
+      setIncidents(allIncidents);
       setError(null);
     } catch (err) {
-      setError('Failed to fetch incidents');
-      console.error('Error fetching incidents:', err);
+      // If backend fails, still show local incidents
+      const localIncidents = JSON.parse(localStorage.getItem('localIncidents') || '[]');
+      setIncidents(localIncidents);
+      setError('Failed to fetch incidents from backend, showing local incidents only');
     } finally {
       setLoading(false);
     }
@@ -86,14 +109,62 @@ const Incidents = () => {
         { status },
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`
+            Authorization: `Bearer ${localStorage.getItem('authToken')}`
           }
         }
       );
       fetchIncidents();
       setSelectedIncident(null);
     } catch (err) {
-      console.error('Error updating incident status:', err);
+      // Silent error handling for status updates
+    }
+  };
+
+  const deleteIncident = async (id: string) => {
+    try {
+      setDeletingId(id);
+      
+      // Check if it's a local incident
+      const incident = incidents.find(inc => inc.id === id);
+      const isLocal = incident?.isLocal;
+      
+      if (isLocal) {
+        // Delete from localStorage
+        const localIncidents = JSON.parse(localStorage.getItem('localIncidents') || '[]');
+        const updatedLocalIncidents = localIncidents.filter((inc: any) => inc.id !== id);
+        localStorage.setItem('localIncidents', JSON.stringify(updatedLocalIncidents));
+        
+        toast({
+          title: "Incident Deleted",
+          description: "Local incident has been removed.",
+          variant: "default",
+        });
+      } else {
+        // Delete from backend
+        await axios.delete(`${API_URL}/alerts/${id}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('authToken')}`
+          }
+        });
+        
+        toast({
+          title: "Incident Deleted",
+          description: "Incident has been removed from the system.",
+          variant: "default",
+        });
+      }
+      
+      // Refresh the incidents list
+      fetchIncidents();
+      setSelectedIncident(null);
+    } catch (err) {
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete the incident. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -169,18 +240,19 @@ const Incidents = () => {
                         <TableHead>Severity</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="w-[150px]">Timestamp</TableHead>
+                        <TableHead className="w-[100px]">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {loading ? (
                         <TableRow>
-                          <TableCell colSpan={5} className="h-24 text-center">
+                          <TableCell colSpan={6} className="h-24 text-center">
                             Loading incidents...
                           </TableCell>
                         </TableRow>
                       ) : error ? (
                         <TableRow>
-                          <TableCell colSpan={5} className="h-24 text-center text-red-500">
+                          <TableCell colSpan={6} className="h-24 text-center text-red-500">
                             {error}
                           </TableCell>
                         </TableRow>
@@ -215,11 +287,47 @@ const Incidents = () => {
                                 </span>
                               </div>
                             </TableCell>
+                            <TableCell>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-500/10"
+                                    onClick={(e) => e.stopPropagation()}
+                                    disabled={deletingId === item.id}
+                                  >
+                                    {deletingId === item.id ? (
+                                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-red-500 border-t-transparent" />
+                                    ) : (
+                                      <Trash2 className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Incident</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete "{item.title}"? This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => deleteIncident(item.id)}
+                                      className="bg-red-600 hover:bg-red-700"
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </TableCell>
                           </TableRow>
                         ))
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={5} className="h-24 text-center">
+                          <TableCell colSpan={6} className="h-24 text-center">
                             No results found.
                           </TableCell>
                         </TableRow>
